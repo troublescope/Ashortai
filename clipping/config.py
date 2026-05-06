@@ -428,6 +428,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Draw crosshair tracking lines extending from the face box to the boundaries",
     )
+    p.add_argument(
+        "--static-crop",
+        action="store_true",
+        help="Disable face tracking and use static center crop for 1:1, 3:4, and 4:5 ratios",
+    )
 
     # --- Smart Auto-Framing / Tracking ---
     p.add_argument(
@@ -636,6 +641,7 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         dev_mode_with_output=args.dev_mode_with_output,
         dev_mode_with_output_merge=args.dev_mode_with_output_merge,
         track_lines=args.track_lines,
+        static_crop=args.static_crop,
     )
 
     return cfg

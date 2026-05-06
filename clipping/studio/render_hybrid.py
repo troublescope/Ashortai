@@ -164,9 +164,15 @@ def buat_video_hybrid(
     raw_data = []
     current_time = 0.0
     last_detect_percent = -1
-    print(f"🧠 {label} - Analisa wajah dimulai...", flush=True)
+    
+    skip_tracking = getattr(cfg, "static_crop", False) and rasio in ["1:1", "3:4", "4:5"]
 
-    while current_time <= duration:
+    if skip_tracking:
+        print(f"🧠 {label} - Static Crop aktif (tanpa face tracking)...", flush=True)
+    else:
+        print(f"🧠 {label} - Analisa wajah dimulai...", flush=True)
+
+    while current_time <= duration and not skip_tracking:
         cap.set(cv2.CAP_PROP_POS_MSEC, (start_clip + current_time) * 1000)
         ret, frame = cap.read()
         if not ret:

@@ -206,6 +206,7 @@ python main.py --help
 | `--dev-mode-with-output` | `False` | **[Experimental]** Generates both the final production video and the dev dashboard video simultaneously. |
 | `--dev-mode-with-output-merge` | `False` | **[Experimental]** Generates a merged ultrawide side-by-side video of the final output and the dev dashboard with boxed framing (v0.9.3). |
 | `--track-lines` | `False` | Draw crosshair tracking lines extending from the face box to the boundaries |
+| `--static-crop` | `False` | Disable face tracking and use static center crop for `1:1`, `3:4`, and `4:5` formats |
 | `--yolo-size` | `8m` | YOLO face track model (`8n`, `8s`, `8m`, `8n_v2`, `9c`) |
 | `--whisper-model` | `large-v3` | Whisper model size ([see here](https://github.com/SYSTRAN/faster-whisper?tab=readme-ov-file#whisper) for options) |
 | `--whisper-device` | `cuda` | Whisper device (`cuda`, `cpu`, `auto`) |
@@ -235,15 +236,15 @@ python main.py --help
 
 ## 📐 Aspect Ratios
 
-OpenSource Clipping supports **5 output aspect ratios**. All vertical/square ratios include **face-tracking** to keep the subject centered.
+OpenSource Clipping supports **5 output aspect ratios**. All vertical/square ratios include **face-tracking** by default to keep the subject centered.
 
 | Ratio | Output | Face Tracking | Best For |
 |---|---|---|---|
 | `9:16` | 1080×1920 | ✅ Yes | TikTok, Reels, YouTube Shorts |
 | `16:9` | 1920×1080 | ❌ No (letterbox if source differs) | YouTube, Landscape content |
-| `1:1` | 1080×1080 | ✅ Yes | Instagram Feed, Twitter/X |
-| `3:4` | 1080×1440 | ✅ Yes | Instagram Portrait, Pinterest |
-| `4:5` | 1080×1350 | ✅ Yes | Instagram/Facebook Feed |
+| `1:1` | 1080×1080 | ✅ Yes (can disable via `--static-crop`) | Instagram Feed, Twitter/X |
+| `3:4` | 1080×1440 | ✅ Yes (can disable via `--static-crop`) | Instagram Portrait, Pinterest |
+| `4:5` | 1080×1350 | ✅ Yes (can disable via `--static-crop`) | Instagram/Facebook Feed |
 
 > [!NOTE]
 > When using `16:9` output with a non-16:9 source (e.g., vertical video), the system applies **letterboxing** (black bars) to preserve the original proportions instead of stretching.
@@ -266,7 +267,7 @@ Divides the screen into panels to show multiple speakers simultaneously.
 
 ### 2. **`--camera-switch` (Cinematic Switching)**
 Mimics professional editing by focusing only on the active speaker in full screen.
-*   **Tampilan:** **Full 9:16** that cuts between speakers.
+*   **View:** **Full 9:16** that cuts between speakers.
 *   **Scene-Aware:** Automatically uses **Blurred Pillarbox** if two people in the same wide-shot are talking; otherwise stays in clean full-crop.
 *   **Best for:** Storytelling, interviews, or high-energy clips.
 

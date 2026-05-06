@@ -206,6 +206,7 @@ python main.py --help
 | `--dev-mode-with-output` | `False` | **[Eksperimental]** Menghasilkan video final dan video "Director's Console" secara bersamaan di file terpisah. |
 | `--dev-mode-with-output-merge` | `False` | **[Eksperimental]** Menghasilkan satu video side-by-side (2648x1220) dengan bingkai kotak (boxed) dan legend (v0.9.3). |
 | `--track-lines` | `False` | Tampilkan garis crosshair kuning dari kotak wajah ke batas window tracking |
+| `--static-crop` | `False` | Nonaktifkan pelacakan wajah dan gunakan static center crop untuk format `1:1`, `3:4`, dan `4:5` |
 | `--yolo-size` | `8m` | Parameter model YOLO ADetailer (`8n`, `8s`, `8m`, `8n_v2`, `9c`) |
 | `--whisper-model` | `large-v3` | Ukuran model Whisper ([lihat daftar model](https://github.com/SYSTRAN/faster-whisper?tab=readme-ov-file#whisper)) |
 | `--whisper-device` | `cuda` | Device Whisper (`cuda`, `cpu`, `auto`) |
@@ -233,15 +234,15 @@ python main.py --help
 
 ## 📐 Rasio Aspek
 
-OpenSource Clipping mendukung **5 rasio aspek output**. Semua rasio vertikal/kotak menyertakan **face-tracking** untuk menjaga subjek tetap di tengah frame.
+OpenSource Clipping mendukung **5 rasio aspek output**. Semua rasio vertikal/kotak menyertakan **face-tracking** secara default untuk menjaga subjek tetap di tengah frame.
 
 | Rasio | Resolusi Output | Face Tracking | Cocok Untuk |
 |---|---|---|---|
 | `9:16` | 1080×1920 | ✅ Ya | TikTok, Reels, YouTube Shorts |
 | `16:9` | 1920×1080 | ❌ Tidak (letterbox jika source berbeda) | YouTube, Konten Landscape |
-| `1:1` | 1080×1080 | ✅ Ya | Instagram Feed, Twitter/X |
-| `3:4` | 1080×1440 | ✅ Ya | Instagram Portrait, Pinterest |
-| `4:5` | 1080×1350 | ✅ Ya | Instagram/Facebook Feed |
+| `1:1` | 1080×1080 | ✅ Ya (bisa dinonaktifkan via `--static-crop`) | Instagram Feed, Twitter/X |
+| `3:4` | 1080×1440 | ✅ Ya (bisa dinonaktifkan via `--static-crop`) | Instagram Portrait, Pinterest |
+| `4:5` | 1080×1350 | ✅ Ya (bisa dinonaktifkan via `--static-crop`) | Instagram/Facebook Feed |
 
 > [!NOTE]
 > Jika menggunakan output `16:9` dengan source yang bukan 16:9 (misal video vertikal), sistem akan menerapkan **letterboxing** (bar hitam) untuk menjaga proporsi asli tanpa men-stretch gambar.

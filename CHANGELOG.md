@@ -7,6 +7,13 @@ All notable changes to the **OpenSource Clipping** project will be documented in
 - **Minor (x.Y.z)**: Incremented for new functionality introduced in a backward-compatible manner.
 - **Patch (x.y.Z)**: Incremented for backward-compatible bug fixes or minor patches.
 
+## [v1.2.2] - 2026-05-07
+
+### Added
+- **Static Center Crop**: Added `--static-crop` flag to disable face tracking for `1:1`, `3:4`, and `4:5` output ratios. When active, the system bypasses AI detection and performs a direct, static center-crop, dramatically speeding up the rendering pipeline for formats that don't strictly require face-tracking.
+
+---
+
 ## [v1.2.1] - 2026-05-06
 
 ### Added
