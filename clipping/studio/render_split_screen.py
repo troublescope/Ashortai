@@ -53,6 +53,7 @@ def buat_video_split_screen(
     output_video,
     start_clip,
     end_clip,
+    rasio,
     diarization_data,
     cfg,
     label="SplitScreen",
@@ -118,7 +119,7 @@ def buat_video_split_screen(
     duration = end_clip - start_clip
 
     # Output dimensions calculated dynamically
-    out_w, out_h = _get_render_dims(cfg, "9:16", source_h=height)
+    out_w, out_h = _get_render_dims(cfg, rasio, source_h=height)
     out_w_final, out_h_final = out_w, out_h
     
     dev_visualize = cfg.dev_mode or cfg.dev_mode_with_output or cfg.dev_mode_with_output_merge
@@ -147,7 +148,7 @@ def buat_video_split_screen(
         crop_w = width
         crop_h = int(width / panel_ratio)
 
-    # --- Full 9:16 Crop dimensions (for solo mode) ---
+    # --- Full Vertical Crop dimensions (for solo mode) ---
     full_ratio = out_w / out_h
     if (width / height) > full_ratio:
         crop_h_full = height

@@ -53,6 +53,7 @@ def buat_video_camera_switch(
     output_video,
     start_clip,
     end_clip,
+    rasio,
     diarization_data,
     cfg,
     label="CameraSwitch",
@@ -118,7 +119,7 @@ def buat_video_camera_switch(
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     duration = end_clip - start_clip
 
-    out_w, out_h = 1080, 1920
+    out_w, out_h = _get_render_dims(cfg, rasio, source_h=height)
 
     # 9:16 crop region from the source frame
     crop_ratio = out_w / out_h  # ≈ 0.5625
@@ -460,7 +461,7 @@ def buat_video_camera_switch(
         return []
 
     # FASE 3: RENDER FRAME
-    out_w, out_h = _get_render_dims(cfg, "9:16", source_h=height)
+    out_w, out_h = _get_render_dims(cfg, rasio, source_h=height)
     
     dev_visualize = cfg.dev_mode # Assume only for 9:16 as described
     if dev_visualize:

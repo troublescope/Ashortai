@@ -7,6 +7,13 @@ All notable changes to the **OpenSource Clipping** project will be documented in
 - **Minor (x.Y.z)**: Incremented for new functionality introduced in a backward-compatible manner.
 - **Patch (x.y.Z)**: Incremented for backward-compatible bug fixes or minor patches.
 
+## [v1.2.3] - 2026-05-08
+
+### Fixed
+- **Dynamic Aspect Ratio for Split-Screen & Camera Switch**: Fixed a bug where both Split-Screen (`MODE_SPLIT=True`) and Camera Switch rendering engines would statically force a `9:16` output regardless of the user's `--ratio` configuration. These modes now correctly support dynamic canvas bounds and arithmetic for arbitrary aspect ratios (such as `1:1`, `3:4`, and `4:5`) as intended.
+
+---
+
 ## [v1.2.2] - 2026-05-07
 
 ### Added
