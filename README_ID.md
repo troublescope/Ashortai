@@ -165,8 +165,14 @@ python main.py --url "URL_VIDEO" --ratio "4:5" --clips 5
 # Output portrait klasik (3:4)
 python main.py --url "URL_VIDEO" --ratio "3:4" --clips 5
 
-# TikTok source (download dari TikTok alih-alih YouTube)
-python main.py --url "https://www.tiktok.com/@username/video/1234567890" --tiktok --clips 3
+# TikTok source
+python main.py --url "https://www.tiktok.com/@username/video/1234567890" --source tiktok --clips 3
+
+# Instagram source
+python main.py --url "https://www.instagram.com/reel/123456789/" --source instagram --clips 3
+
+# Google Drive source
+python main.py --url "https://drive.google.com/file/d/1234567890/view" --source gdrive --clips 3
 ```
 
 ## ⚙️ Opsi CLI
@@ -178,7 +184,7 @@ python main.py --help
 | Argumen | Default | Deskripsi |
 |---|---|---|
 | `--url`, `-u` | — | URL video yang akan diproses (Wajib) |
-| `--tiktok` | `False` | Gunakan TikTok sebagai sumber video. `--url` harus berupa link video TikTok. |
+| `--source` | `youtube` | Sumber video. Pilihan: `youtube`, `tiktok`, `instagram`, `gdrive`. |
 | `--clips`, `-n` | `7` | Jumlah klip highlight yang dihasilkan |
 | `--ratio`, `-r` | `9:16` | Rasio aspek output (`9:16`, `16:9`, `1:1`, `3:4`, `4:5`) |
 | `--source-height` | `max` | Batas tinggi resolusi source saat download (`max`, `1080`, `1440`, `2160`, dst.) |
@@ -343,7 +349,7 @@ opensource-clipping/
 
 ```mermaid
 graph LR
-    A[URL YouTube / TikTok] --> B[Download Video]
+    A[URL Video] --> B[Download Video]
     B --> C[Transkripsi Whisper]
     C --> D[Analisis Gemini AI]
     D --> E[QA Metadata]
@@ -378,8 +384,8 @@ Untuk setiap klip, pipeline akan membuat folder `outputs/` dan menghasilkan:
 ## 🎛️ Penjelasan Parameter Konfigurasi
 
 **▶️ Pengaturan Utama**
-- `--url` : Link video sumber (YouTube default, TikTok dengan `--tiktok`)
-- `--tiktok` : Aktifkan mode TikTok — download video dari TikTok alih-alih YouTube
+- `--url` : Link video sumber
+- `--source` : Sumber platform video (Pilihan: `youtube`, `tiktok`, `instagram`, `gdrive`). Default: `youtube`.
 - `--clips` : Berapa banyak klip yang ingin dihasilkan
 - `--ratio` : `9:16` untuk TikTok/Reels/Shorts, `16:9` untuk YouTube biasa, `1:1` untuk Instagram Feed, `3:4` untuk Pinterest, `4:5` untuk Instagram/Facebook Feed
 - `--source-height` : Batas resolusi source saat download (`max` = ambil kualitas tertinggi yang tersedia)

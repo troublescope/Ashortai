@@ -201,13 +201,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # --- Pengaturan utama ---
     p.add_argument(
-        "--url", "-u", required=True, help="Video URL to process (YouTube by default, TikTok with --tiktok)"
+        "--url", "-u", required=True,
+        help="Video URL to process (supports YouTube, TikTok, Instagram, Google Drive)",
+    )
+    p.add_argument(
+        "--source",
+        choices=["youtube", "tiktok", "instagram", "gdrive"],
+        default=SOURCE_PLATFORM,
+        help="Video source platform. Determines download behavior and subtitle availability.",
     )
     p.add_argument(
         "--tiktok",
         action="store_true",
         default=False,
-        help="Use TikTok as the video source instead of YouTube. The --url should be a TikTok video link.",
+        help="[DEPRECATED] Use --source tiktok instead.",
     )
     p.add_argument(
         "--clips",
@@ -570,7 +577,7 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         hf_token=os.environ.get("HF_TOKEN", ""),
         pexels_api_key=os.environ.get("PEXELS_API_KEY", ""),
         # Pengaturan utama
-        source_platform="tiktok" if args.tiktok else SOURCE_PLATFORM,
+        source_platform="tiktok" if args.tiktok else args.source,
         url_youtube=args.url,
         jumlah_clip=args.clips,
         pilihan_rasio=args.ratio,

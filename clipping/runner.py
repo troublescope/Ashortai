@@ -54,8 +54,8 @@ def run_pipeline(cfg) -> list[dict]:
     json3_files = glob.glob(cfg.file_video_asli.replace(".mp4", ".*.json3"))
     file_json3 = json3_files[0] if json3_files else None
 
-    # Skip YouTube JSON3 subtitle search for TikTok sources
-    if source_platform != "tiktok":
+    # Only run YouTube JSON3 subtitle search for YouTube sources
+    if source_platform == "youtube":
         if (
             getattr(cfg, "use_dlp_subs", False)
             and file_json3

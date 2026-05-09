@@ -25,7 +25,16 @@ def main():
         sys.exit(1)
 
     version = "1.0.7"
-    platform_label = "TikTok" if getattr(cfg, "source_platform", "youtube") == "tiktok" else "YouTube"
+    
+    _PLATFORM_LABELS = {
+        "youtube": "YouTube",
+        "tiktok": "TikTok",
+        "instagram": "Instagram",
+        "gdrive": "Google Drive",
+    }
+    platform_key = getattr(cfg, "source_platform", "youtube")
+    platform_label = _PLATFORM_LABELS.get(platform_key, platform_key)
+    
     print("=" * 70)
     print(f"🎬 OpenSource Clipping v{version}")
     print("=" * 70)

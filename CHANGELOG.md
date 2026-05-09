@@ -10,8 +10,10 @@ All notable changes to the **OpenSource Clipping** project will be documented in
 ## [v1.3.0] - 2026-05-09
 
 ### Added
-- **TikTok Source Support**: Added `--tiktok` CLI flag to download videos from TikTok instead of YouTube. When enabled, the `--url` parameter accepts a TikTok video URL (e.g. `https://www.tiktok.com/@username/video/1234567890`). The download engine uses a simplified `yt-dlp` format selector optimized for TikTok's single-quality serving. YouTube subtitle fallback (`--use-dlp-subs`) is automatically skipped for TikTok sources — Whisper is always used for transcription.
-- **Source Platform Banner**: The startup banner now displays the active source platform (`YouTube` or `TikTok`) for clarity.
+- **Multi-Platform Source Support**: Refactored the source engine to support multiple video platforms natively via the new `--source` CLI flag. You can now download videos directly from `youtube` (default), `tiktok`, `instagram`, and `gdrive`.
+  - When a non-YouTube platform is selected, the download engine uses a simplified `yt-dlp` format selector optimized for their single-quality serving.
+  - YouTube subtitle fallback (`--use-dlp-subs`) is automatically skipped for non-YouTube sources — Whisper is always used for transcription.
+- **Source Platform Banner**: The startup banner now displays the active source platform for clarity.
 
 ---
 

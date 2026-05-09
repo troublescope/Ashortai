@@ -50,6 +50,14 @@ def _build_ydl_format_selector(download_source_height: str | int) -> str:
     )
 
 
+_PLATFORM_LABELS = {
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "instagram": "Instagram",
+    "gdrive": "Google Drive",
+}
+
+
 def download_video(
     url: str,
     output_path: str,
@@ -63,10 +71,11 @@ def download_video(
     Parameters
     ----------
     source_platform : str
-        Either ``"youtube"`` (default) or ``"tiktok"``.
+        One of ``"youtube"`` (default), ``"tiktok"``, ``"instagram"``,
+        or ``"gdrive"``.
     """
-    is_tiktok = source_platform == "tiktok"
-    platform_label = "TikTok" if is_tiktok else "YouTube"
+    platform_label = _PLATFORM_LABELS.get(source_platform, source_platform)
+    uses_youtube_format = source_platform == "youtube"
 
     print(f"[1/3] Mendownload video dari {platform_label}...")
     if download_source_height == "max":
@@ -74,15 +83,9 @@ def download_video(
     else:
         print(f"      🎯 Source quality: up to {download_source_height}p", flush=True)
 
-    if is_tiktok:
-        # TikTok typically serves a single quality; keep the selector simple.
-        ydl_opts = {
-            "format": "best",
-            "outtmpl": output_path,
-            "quiet": True,
-            "merge_output_format": "mp4",
-        }
-    else:
+    # --- Build yt-dlp options per platform ---
+    if uses_youtube_format:
+        # YouTube: complex format selector + AV1 filter + remote components
         ydl_opts = {
             "format": _build_ydl_format_selector(download_source_height),
             "outtmpl": output_path,
@@ -90,9 +93,17 @@ def download_video(
             "merge_output_format": "mp4",
             "remote_components": ["ejs:github"],
         }
+    else:
+        # TikTok / Instagram / Google Drive: ensure video and audio are merged
+        ydl_opts = {
+            "format": "bestvideo+bestaudio/best",
+            "outtmpl": output_path,
+            "quiet": True,
+            "merge_output_format": "mp4",
+        }
 
-    # Subtitle download — only supported for YouTube
-    if use_dlp_subs and not is_tiktok:
+    # --- Subtitle download — only supported for YouTube ---
+    if use_dlp_subs and uses_youtube_format:
         print("      Mencoba mencari subtitle bahasa otomatis (en / id)...")
         import glob
 
@@ -116,8 +127,8 @@ def download_video(
                     break
             except Exception as e:
                 print(f"      ⚠️ Gagal menarik subtitle '{lang}' ({e}). Mencoba opsi selanjutnya...")
-    elif use_dlp_subs and is_tiktok:
-        print("      ℹ️ TikTok tidak menyediakan subtitle otomatis. Whisper akan digunakan.")
+    elif use_dlp_subs and not uses_youtube_format:
+        print(f"      ℹ️ {platform_label} tidak menyediakan subtitle otomatis. Whisper akan digunakan.")
 
     # Jalankan download video terpisah dari urusan subtitle
     with YoutubeDL(ydl_opts) as ydl:
