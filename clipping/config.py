@@ -36,6 +36,9 @@ USE_CAMERA_SWITCH = False
 DIARIZATION_NUM_SPEAKERS = "auto"
 SWITCH_HOLD_DURATION = 2.0
 
+# Source Platform
+SOURCE_PLATFORM = "youtube"
+
 # 3. PENGATURAN SUBTITLE & TIPOGRAFI (ASS STYLE)
 USE_ADVANCED_TEXT = False
 USE_ADVANCED_TEXT_ON_HOOK = False
@@ -198,7 +201,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # --- Pengaturan utama ---
     p.add_argument(
-        "--url", "-u", required=True, help="YouTube video URL to process"
+        "--url", "-u", required=True, help="Video URL to process (YouTube by default, TikTok with --tiktok)"
+    )
+    p.add_argument(
+        "--tiktok",
+        action="store_true",
+        default=False,
+        help="Use TikTok as the video source instead of YouTube. The --url should be a TikTok video link.",
     )
     p.add_argument(
         "--clips",
@@ -561,6 +570,7 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         hf_token=os.environ.get("HF_TOKEN", ""),
         pexels_api_key=os.environ.get("PEXELS_API_KEY", ""),
         # Pengaturan utama
+        source_platform="tiktok" if args.tiktok else SOURCE_PLATFORM,
         url_youtube=args.url,
         jumlah_clip=args.clips,
         pilihan_rasio=args.ratio,

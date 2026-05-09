@@ -55,25 +55,44 @@ def download_video(
     output_path: str,
     use_dlp_subs: bool = False,
     download_source_height: str | int = "max",
+    source_platform: str = "youtube",
 ) -> None:
     """
-    Download a YouTube video to *output_path* with configurable source height.
+    Download a video to *output_path* with configurable source height.
+
+    Parameters
+    ----------
+    source_platform : str
+        Either ``"youtube"`` (default) or ``"tiktok"``.
     """
-    print("[1/3] Mendownload video dari YouTube...")
+    is_tiktok = source_platform == "tiktok"
+    platform_label = "TikTok" if is_tiktok else "YouTube"
+
+    print(f"[1/3] Mendownload video dari {platform_label}...")
     if download_source_height == "max":
         print("      🎯 Source quality: highest available", flush=True)
     else:
         print(f"      🎯 Source quality: up to {download_source_height}p", flush=True)
 
-    ydl_opts = {
-        "format": _build_ydl_format_selector(download_source_height),
-        "outtmpl": output_path,
-        "quiet": True,
-        "merge_output_format": "mp4",
-        "remote_components": ["ejs:github"],
-    }
+    if is_tiktok:
+        # TikTok typically serves a single quality; keep the selector simple.
+        ydl_opts = {
+            "format": "best",
+            "outtmpl": output_path,
+            "quiet": True,
+            "merge_output_format": "mp4",
+        }
+    else:
+        ydl_opts = {
+            "format": _build_ydl_format_selector(download_source_height),
+            "outtmpl": output_path,
+            "quiet": True,
+            "merge_output_format": "mp4",
+            "remote_components": ["ejs:github"],
+        }
 
-    if use_dlp_subs:
+    # Subtitle download — only supported for YouTube
+    if use_dlp_subs and not is_tiktok:
         print("      Mencoba mencari subtitle bahasa otomatis (en / id)...")
         import glob
 
@@ -97,6 +116,8 @@ def download_video(
                     break
             except Exception as e:
                 print(f"      ⚠️ Gagal menarik subtitle '{lang}' ({e}). Mencoba opsi selanjutnya...")
+    elif use_dlp_subs and is_tiktok:
+        print("      ℹ️ TikTok tidak menyediakan subtitle otomatis. Whisper akan digunakan.")
 
     # Jalankan download video terpisah dari urusan subtitle
     with YoutubeDL(ydl_opts) as ydl:

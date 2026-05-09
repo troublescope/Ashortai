@@ -25,9 +25,11 @@ def main():
         sys.exit(1)
 
     version = "1.0.7"
+    platform_label = "TikTok" if getattr(cfg, "source_platform", "youtube") == "tiktok" else "YouTube"
     print("=" * 70)
     print(f"🎬 OpenSource Clipping v{version}")
     print("=" * 70)
+    print(f"   Source      : {platform_label}")
     print(f"   URL         : {cfg.url_youtube}")
     print(f"   Jumlah Clip : {cfg.jumlah_clip}")
     print(f"   Rasio       : {cfg.pilihan_rasio}")

@@ -35,11 +35,13 @@ def run_pipeline(cfg) -> list[dict]:
     """
 
     # Step 1 — Download
+    source_platform = getattr(cfg, "source_platform", "youtube")
     engine.download_video(
         cfg.url_youtube,
         cfg.file_video_asli,
         getattr(cfg, "use_dlp_subs", False),
         getattr(cfg, "download_source_height", "max"),
+        source_platform=source_platform,
     )
 
     # Step 2 — Transcribe
@@ -52,18 +54,20 @@ def run_pipeline(cfg) -> list[dict]:
     json3_files = glob.glob(cfg.file_video_asli.replace(".mp4", ".*.json3"))
     file_json3 = json3_files[0] if json3_files else None
 
-    if (
-        getattr(cfg, "use_dlp_subs", False)
-        and file_json3
-        and os.path.exists(file_json3)
-    ):
-        transkrip_lengkap, data_segmen = engine.parse_youtube_json3_subs(
-            file_json3, max_words_per_subtitle=cfg.max_kata_per_subtitle
-        )
-        if transkrip_lengkap and data_segmen:
-            print(
-                f"✅ Berhasil memparsing subtitle dari YouTube ({os.path.basename(file_json3)}), melewati proses Whisper."
+    # Skip YouTube JSON3 subtitle search for TikTok sources
+    if source_platform != "tiktok":
+        if (
+            getattr(cfg, "use_dlp_subs", False)
+            and file_json3
+            and os.path.exists(file_json3)
+        ):
+            transkrip_lengkap, data_segmen = engine.parse_youtube_json3_subs(
+                file_json3, max_words_per_subtitle=cfg.max_kata_per_subtitle
             )
+            if transkrip_lengkap and data_segmen:
+                print(
+                    f"✅ Berhasil memparsing subtitle dari YouTube ({os.path.basename(file_json3)}), melewati proses Whisper."
+                )
 
     if not transkrip_lengkap or not data_segmen:
         transkrip_lengkap, data_segmen = engine.transcribe_video(

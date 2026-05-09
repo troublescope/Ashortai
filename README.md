@@ -164,6 +164,9 @@ python main.py --url "VIDEO_URL" --ratio "4:5" --clips 5
 
 # Classic portrait (3:4)
 python main.py --url "VIDEO_URL" --ratio "3:4" --clips 5
+
+# TikTok source (download from TikTok instead of YouTube)
+python main.py --url "https://www.tiktok.com/@username/video/1234567890" --tiktok --clips 3
 ```
 
 ## ⚙️ CLI Options
@@ -174,7 +177,8 @@ python main.py --help
 
 | Argument | Default | Description |
 |---|---|---|
-| `--url`, `-u` | — | YouTube video URL to process (Required) |
+| `--url`, `-u` | — | Video URL to process (Required) |
+| `--tiktok` | `False` | Use TikTok as the video source. The `--url` should be a TikTok video link. |
 | `--clips`, `-n` | `7` | Number of highlight clips to generate |
 | `--ratio`, `-r` | `9:16` | Output aspect ratio (`9:16`, `16:9`, `1:1`, `3:4`, `4:5`) |
 | `--source-height` | `max` | Preferred source download max height (`max`, `1080`, `1440`, `2160`, etc.) |
@@ -398,7 +402,7 @@ opensource-clipping/
 
 ```mermaid
 graph LR
-    A[YouTube URL] --> B[Download Video]
+    A[YouTube / TikTok URL] --> B[Download Video]
     B --> C[Whisper Transcription]
     C --> D[Gemini AI Analysis]
     D --> E[Metadata QA]
