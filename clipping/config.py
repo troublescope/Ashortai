@@ -201,8 +201,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # --- Pengaturan utama ---
     p.add_argument(
-        "--url", "-u", required=True,
-        help="Video URL to process (supports YouTube, TikTok, Instagram, Google Drive)",
+        "--url", "-u", required=False, default=None,
+        help="Video URL to process (supports YouTube, TikTok, Instagram, Google Drive). Required unless --story-mode is used.",
     )
     p.add_argument(
         "--source",
@@ -539,6 +539,36 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Resize algorithm for OpenCV scaling steps during rendering.",
     )
 
+    # --- Story Clip Mode ---
+    story_group = p.add_argument_group("Story Clip Mode")
+    story_group.add_argument(
+        "--story-mode",
+        action="store_true",
+        default=False,
+        help="Enable Story Clip mode: assemble clips from multiple video sources using a JSON recipe.",
+    )
+    story_group.add_argument(
+        "--story-recipe",
+        default="story_recipe.json",
+        help="Path to the story recipe JSON file.",
+    )
+    story_group.add_argument(
+        "--sources-json",
+        default="sources.json",
+        help="Path to the sources registry JSON file.",
+    )
+    story_group.add_argument(
+        "--story-output-dir",
+        default=None,
+        help="Output directory for story clips (default: outputs/story_clips).",
+    )
+    story_group.add_argument(
+        "--skip-download",
+        action="store_true",
+        default=False,
+        help="Skip source downloads and use existing cached files.",
+    )
+
     return p
 
 
@@ -546,6 +576,10 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
     """Parse CLI args and merge with defaults into a config namespace."""
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    # Validate: --url is required unless --story-mode is used
+    if not args.story_mode and not args.url:
+        parser.error("--url is required unless --story-mode is used.")
 
     base_dir = os.getcwd()
     outputs_dir = os.path.abspath(os.path.join(base_dir, "outputs"))
@@ -659,6 +693,16 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         dev_mode_with_output_merge=args.dev_mode_with_output_merge,
         track_lines=args.track_lines,
         static_crop=args.static_crop,
+        # Story Clip Mode
+        story_mode=args.story_mode,
+        story_recipe_path=os.path.abspath(args.story_recipe) if args.story_recipe else None,
+        sources_json_path=os.path.abspath(args.sources_json) if args.sources_json else None,
+        story_output_dir=(
+            os.path.abspath(args.story_output_dir)
+            if args.story_output_dir
+            else os.path.join(outputs_dir, "story_clips")
+        ),
+        skip_download=args.skip_download,
     )
 
     return cfg

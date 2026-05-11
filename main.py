@@ -16,6 +16,28 @@ from clipping.config import build_config
 def main():
     cfg = build_config(sys.argv[1:])
 
+    version = "1.0.7"
+
+    # ── Story Clip Mode ──────────────────────────────────────────────
+    if getattr(cfg, "story_mode", False):
+        from clipping.story_runner import run_story_pipeline
+
+        print("=" * 70)
+        print(f"🎬 OpenSource Clipping v{version} — Story Clip Mode")
+        print("=" * 70)
+        print(f"   Recipe      : {cfg.story_recipe_path}")
+        print(f"   Sources     : {cfg.sources_json_path}")
+        print(f"   Rasio       : {cfg.pilihan_rasio}")
+        print(f"   Output Dir  : {cfg.story_output_dir}")
+        print(f"   Skip DL     : {'YES' if cfg.skip_download else 'NO'}")
+        print("=" * 70)
+
+        run_story_pipeline(cfg)
+
+        print("\n✅ Selesai! Semua story clips telah dirender.")
+        return
+
+    # ── Normal Auto-Clip Mode ────────────────────────────────────────
     # Lazy import so --help works without heavy deps
     from clipping.runner import run_pipeline
 
@@ -24,8 +46,6 @@ def main():
         print("   Set via: export GOOGLE_API_KEY='your-key' atau buat file .env")
         sys.exit(1)
 
-    version = "1.0.7"
-    
     _PLATFORM_LABELS = {
         "youtube": "YouTube",
         "tiktok": "TikTok",

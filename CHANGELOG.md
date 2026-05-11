@@ -7,6 +7,36 @@ All notable changes to the **OpenSource Clipping** project will be documented in
 - **Minor (x.Y.z)**: Incremented for new functionality introduced in a backward-compatible manner.
 - **Patch (x.y.Z)**: Incremented for backward-compatible bug fixes or minor patches.
 
+## [v1.4.0] - 2026-05-11
+
+### Added
+- **Story Clip Mode (`--story-mode`)**: Brand-new multi-source narrative assembly pipeline for building clips from multiple video sources. Designed for campaign work (e.g., Shopee, brand briefs) where specific scenes from different videos must be stitched together into a cohesive story.
+  - Define video sources in `sources.json` — supports YouTube, TikTok, Instagram, Google Drive, and local files.
+  - Define the clip recipe in `story_recipe.json` — specify scenes with exact timestamps, hooks, highlights, transitions, and metadata per clip.
+  - Each clip produces **2 separate outputs**: `hook_N.mp4` (teaser intro) and `highlight_N.mp4` (main content).
+  - Automatic multi-source download with idempotent caching (`outputs/story_cache/`).
+  - Scene normalization ensures consistent resolution/fps across heterogeneous sources before concatenation.
+  - Transition support: `cut` (hard cut) and `smooth`/`crossfade` (0.5s dissolve).
+  - Hook text overlay rendering via FFmpeg drawtext filter.
+  - Full manifest output (`story_manifest.json`) with status tracking per clip.
+  - Includes `sources.sample.json` and `story_recipe.sample.json` templates.
+- **New CLI Flags**:
+  - `--story-mode`: Enable Story Clip pipeline (bypasses AI analysis — no `GOOGLE_API_KEY` needed).
+  - `--story-recipe`: Path to recipe JSON (default: `story_recipe.json`).
+  - `--sources-json`: Path to sources registry JSON (default: `sources.json`).
+  - `--story-output-dir`: Custom output directory (default: `outputs/story_clips`).
+  - `--skip-download`: Skip source downloads and use existing cache.
+- **New Modules**:
+  - `clipping/story/loader.py` — JSON parser & validator with cross-reference validation between sources and recipe.
+  - `clipping/story/source_manager.py` — Multi-platform download & cache manager (reuses existing engine).
+  - `clipping/story/assembler.py` — FFmpeg-based scene trimming, normalization, concatenation, and text overlay.
+  - `clipping/story_runner.py` — Pipeline orchestrator for Story Clip mode.
+
+### Changed
+- **`--url` is now optional**: The `--url` flag is no longer globally required — it is only required when running in standard auto-clip mode. Story Clip mode uses `sources.json` instead.
+
+---
+
 ## [v1.3.0] - 2026-05-09
 
 ### Added
