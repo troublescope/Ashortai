@@ -250,10 +250,8 @@ def proses_klip(
     try:
         # HOOK
         hook_v2_data = clip.get("hook_v2", {})
-        use_hook_v2 = (
-            aktif_hook
-            and getattr(cfg, "hook_v2", False)
-        )
+        # Hook V2 is independent of --no-hook (which only disables v1 teaser)
+        use_hook_v2 = getattr(cfg, "hook_v2", False)
 
         if use_hook_v2:
             print("   📸 [Hook V2] Rendering Multi-Hook Intro...")

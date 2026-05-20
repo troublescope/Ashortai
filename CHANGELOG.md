@@ -7,6 +7,13 @@ All notable changes to the **OpenSource Clipping** project will be documented in
 - **Minor (x.Y.z)**: Incremented for new functionality introduced in a backward-compatible manner.
 - **Patch (x.y.Z)**: Incremented for backward-compatible bug fixes or minor patches.
 
+## [v1.5.2] - 2026-05-20
+
+### Fixed
+- **Hook V2 Independent of `--no-hook`**: Fixed a critical issue where `--no-hook` was also disabling Hook V2. Now `--no-hook` only disables the old V1 teaser hook (3-second glitch intro), while `--hook-v2` works independently regardless of the `--no-hook` flag.
+
+---
+
 ## [v1.5.1] - 2026-05-20
 
 ### Fixed

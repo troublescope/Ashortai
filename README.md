@@ -390,6 +390,7 @@ Example:
 
 > [!NOTE]
 > - **Hook V2 is not affected** by any of the above flags. Hook V2 always picks its rapid-fire clips as chosen by AI.
+> - **`--no-hook` only disables Hook V1** (the 3-second glitch teaser). Hook V2 (`--hook-v2`) works independently even when `--no-hook` is active.
 > - Segment Trimming and Silence Trimming **work without Hook V2** — just omit the `--hook-v2` flag.
 > - If AI determines the entire clip is already tight and engaging, `keep_segments` will contain a single segment spanning the full duration (same effect as `--no-segment-trim`).
 

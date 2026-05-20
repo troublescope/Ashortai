@@ -388,6 +388,7 @@ Contoh:
 
 > [!NOTE]
 > - **Hook V2 tidak terpengaruh** oleh ketiga opsi di atas. Hook V2 selalu mengambil potongan cepat sesuai yang AI pilih.
+> - **`--no-hook` hanya mematikan Hook V1** (teaser glitch 3 detik). Hook V2 (`--hook-v2`) tetap berjalan meskipun `--no-hook` aktif. Kedua hook bersifat independen.
 > - Segment Trimming dan Silence Trimming **bisa digunakan tanpa Hook V2**, cukup jangan tambahkan flag `--hook-v2`.
 > - Jika AI menilai seluruh clip sudah padat dan menarik, `keep_segments` hanya berisi 1 segmen yang mencakup seluruh durasi (efeknya sama seperti `--no-segment-trim`).
 
