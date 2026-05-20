@@ -253,14 +253,27 @@ def proses_klip(
         use_hook_v2 = (
             aktif_hook
             and getattr(cfg, "hook_v2", False)
-            and hook_v2_data
-            and hook_v2_data.get("enabled")
         )
 
         if use_hook_v2:
             print("   📸 [Hook V2] Rendering Multi-Hook Intro...")
             h_ts_parts = []
-            items = hook_v2_data.get("items", [])
+            items = hook_v2_data.get("items", []) if hook_v2_data else []
+
+            # Fallback: if AI didn't provide hook_v2 items, generate from hook timing
+            if not items:
+                num_items = getattr(cfg, "hook_v2_items", 3)
+                hook_total = h_end - h_start
+                chunk_dur = max(0.5, hook_total / num_items)
+                items = []
+                for fi in range(num_items):
+                    fi_start = h_start + fi * chunk_dur
+                    fi_end = min(fi_start + chunk_dur, h_end)
+                    if fi_end <= fi_start:
+                        break
+                    items.append({"start_time": fi_start, "end_time": fi_end, "text": ""})
+                print(f"   ⚠️ [Hook V2] AI tidak memberi items, fallback ke {len(items)} potongan dari hook timing.")
+
             out_w_v2, out_h_v2 = _get_render_dims(cfg, rasio, source_h=sh)
             flash_dur = getattr(cfg, "white_flash_duration", 0.12)
 
@@ -323,13 +336,16 @@ def proses_klip(
                             trans_mp4, duration=flash_dur,
                             width=out_w_v2, height=out_h_v2,
                         )
-                    # Convert to .ts for concat
+                    # Convert to .ts for concat (stream copy — already encoded by v2_helpers)
                     subprocess.run(
                         ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-                         "-i", trans_mp4] + std_p + [trans_ts],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         "-i", trans_mp4, "-c", "copy",
+                         "-bsf:v", "h264_mp4toannexb",
+                         "-f", "mpegts", trans_ts],
+                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                     )
                     h_ts_parts.append(trans_ts)
+                    print(f"      ⚡ Transisi {i+1} ({trans_type}) berhasil ditambahkan.")
 
             # Concat all hook v2 pieces into h_ts
             if h_ts_parts:
