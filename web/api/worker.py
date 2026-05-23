@@ -335,7 +335,7 @@ def _run_pipeline_sync(job_id: str, payload: dict) -> None:
         # --- Build clip details for the job store ---
         clips: list[ClipDetail] = []
         for entry in render_manifest:
-            filename = os.path.basename(entry.get("output_file", ""))
+            filename = os.path.basename(entry.get("output_file") or entry.get("video_path") or "")
             clips.append(
                 ClipDetail(
                     rank=entry.get("rank", 0),
