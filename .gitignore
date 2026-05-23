@@ -26,3 +26,10 @@ metadata_preview.json
 credentials.json
 youtube_token.json
 .credentials/
+
+# User Local Caches & Workspaces
+.cache/
+.local/
+.pytest_cache/
+.ruff_cache/
+uploads/

@@ -594,6 +594,16 @@ Proyek ini sekarang menyertakan uploader YouTube mandiri (standalone) dengan duk
    ```
 3. Untuk mengetes hanya dengan video pertama, jalankan dengan argumen `--test-mode`. Gunakan perintah `python run_upload.py --help` untuk melihat opsi timezone dan interval penjadwalan.
 
+## 🧹 Pembersihan Disk (Cleanup)
+
+Karena pipeline mengunduh video sumber (*source video*) berukuran penuh dan membuat berbagai file sementara (*temporary files* seperti .wav, .json, dan potongan .mp4), ukuran folder `outputs/` dan `uploads/` dapat membengkak seiring waktu. 
+
+Kami menyediakan script bash sederhana untuk membersihkan semua file *temporary* tersebut dengan aman, dengan tetap mempertahankan video final dan histori pekerjaan (*job history*) Anda di `jobs.json`:
+
+```bash
+bash cleanup.sh
+```
+
 ## 📄 Lisensi
 
 Open source. Bebas digunakan, dimodifikasi, dan didistribusikan.

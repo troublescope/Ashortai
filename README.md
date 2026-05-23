@@ -528,6 +528,16 @@ The project now includes a standalone YouTube auto-uploader with scheduling supp
    ```
 3. To run a test with only the first video, use `python run_upload.py --test-mode`. Run `python run_upload.py --help` to see all scheduling and timezone options.
 
+## 🧹 Disk Cleanup
+
+Since the pipeline downloads full source videos and creates intermediate files (wav, chunks, transcripts), the `outputs/` and `uploads/` directories can grow very large over time. 
+
+We provide a simple bash script to safely clean up all temporary files while preserving your final generated clips and job history (`jobs.json`):
+
+```bash
+bash cleanup.sh
+```
+
 ## 📄 License
 
 Open source. Feel free to use, modify, and distribute.

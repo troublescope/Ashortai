@@ -14,3 +14,7 @@ ultralytics
 pyannote.audio
 torch
 torchaudio
+fastapi
+uvicorn
+python-multipart
+pydantic

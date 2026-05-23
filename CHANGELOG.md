@@ -7,6 +7,17 @@ All notable changes to the **OpenSource Clipping** project will be documented in
 - **Minor (x.Y.z)**: Incremented for new functionality introduced in a backward-compatible manner.
 - **Patch (x.y.Z)**: Incremented for backward-compatible bug fixes or minor patches.
 
+## [v1.6.0] - 2026-05-22
+
+### Added
+- **Web GUI Studio**: Built a complete, responsive React/Vite dashboard to replace the CLI-only workflow. Features real-time job monitoring, rich configuration forms, visual progress tracking, and an integrated media gallery for downloading clips.
+- **FastAPI Backend**: Built a robust, asynchronous REST API (`web/api/app.py`) with an in-memory job queue and persistent JSON storage (`outputs/jobs.json`) to handle concurrent clip generation without blocking.
+- **Real-Time Progress Streaming**: Integrated Server-Sent Events (SSE) to stream live pipeline logs and progress percentages directly to the browser dashboard.
+- **Docker Deployment**: Fully containerized the application with a multi-stage `Dockerfile` and `docker-compose.yml`, enabling one-click deployment of the entire backend, frontend, and rendering stack in an isolated environment.
+- **API Key Management UI**: Added a settings page to configure Gemini, Pexels, HuggingFace, and NVIDIA API keys dynamically without manually editing `.env` files.
+
+---
+
 ## [v1.5.4] - 2026-05-22
 
 ### Changed
