@@ -399,9 +399,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--ai-provider",
-        choices=["gemini", "nvidia"],
+        choices=["gemini", "nvidia", "ollama"],
         default=AI_PROVIDER,
-        help="AI provider for video analysis (gemini or nvidia).",
+        help="AI provider for video analysis (gemini, nvidia, or ollama).",
     )
     p.add_argument(
         "--nvidia-model",
@@ -415,9 +415,39 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Gemini fallback model name if main model fails",
     )
     p.add_argument(
+        "--ollama-url",
+        default="http://localhost:11434",
+        help="Ollama server base URL (e.g. http://localhost:11434 or https://ollama.com/api).",
+    )
+    p.add_argument(
+        "--ollama-model",
+        default="llama3.1",
+        help="Ollama model tag to use (e.g. llama3.1, mistral, phi4).",
+    )
+    p.add_argument(
+        "--ollama-api-key",
+        default=None,
+        help="Optional API key for authenticated Ollama endpoints.",
+    )
+    p.add_argument(
+        "--ollama-fallback-url",
+        default=None,
+        help="Ollama URL used when Gemini fails and auto-fallback is triggered. Defaults to --ollama-url.",
+    )
+    p.add_argument(
+        "--ollama-fallback-model",
+        default="gemini-3-flash-preview:cloud",
+        help="Ollama model used when Gemini fails and auto-fallback is triggered.",
+    )
+    p.add_argument(
         "--load-gemini-json",
         action="store_true",
         help="Load the saved gemini_response.json from outputs dir to bypass the AI generation step (useful for debugging)",
+    )
+    p.add_argument(
+        "--use-yt-transcript-api",
+        action="store_true",
+        help="Use youtube-transcript-api to fetch captions before falling back to Whisper/yt-dlp.",
     )
     p.add_argument(
         "--box-face-detection",
@@ -606,6 +636,17 @@ def _build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Skip source downloads and use existing cached files.",
     )
+    p.add_argument(
+        "--colab-cleanup",
+        action="store_true",
+        default=False,
+        help="[Colab] Aggressively free GPU memory between pipeline stages and clean temp files.",
+    )
+    p.add_argument(
+        "--clip-config",
+        default=None,
+        help="Path to JSON file with per-clip (per-rank) overrides. Keys are rank numbers (1,2,3...). See docs for available fields.",
+    )
 
     return p
 
@@ -715,6 +756,12 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         nvidia_model=args.nvidia_model,
         gemini_model=args.gemini_model,
         gemini_fallback_model=args.gemini_fallback_model,
+        ollama_url=args.ollama_url,
+        ollama_model=args.ollama_model,
+        ollama_api_key=args.ollama_api_key or os.environ.get("OLLAMA_API_KEY", ""),
+        ollama_fallback_url=args.ollama_fallback_url or args.ollama_url,
+        ollama_fallback_model=args.ollama_fallback_model,
+        use_yt_transcript_api=args.use_yt_transcript_api,
         load_gemini_json=args.load_gemini_json,
         # Tracking Tuning
         track_step=args.track_step,
@@ -748,6 +795,8 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
             else os.path.join(outputs_dir, "story_clips")
         ),
         skip_download=args.skip_download,
+        colab_cleanup=args.colab_cleanup,
+        clip_config_path=os.path.abspath(args.clip_config) if args.clip_config else None,
     )
 
     return cfg

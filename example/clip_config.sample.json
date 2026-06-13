@@ -1,0 +1,59 @@
+{
+  "_description": "Per-clip (per-rank) overrides for OpenSource Clipping. Keys are rank numbers (1,2,3...). See README for full field list.",
+  "1": {
+    "ratio": "9:16",
+    "font_style": "HORMOZI",
+    "use_broll": true,
+    "use_hook_glitch": true,
+    "use_auto_bgm": true,
+    "no_subs": false,
+    "face_detector": "mediapipe",
+    "video_preset": "ultrafast",
+    "video_scale_algo": "bicubic",
+    "video_cq": 23,
+    "words_per_sub": 5,
+    "hook_duration": 3,
+    "use_split_screen": false,
+    "static_crop": false
+  },
+  "2": {
+    "ratio": "1:1",
+    "font_style": "CINEMATIC",
+    "use_broll": false,
+    "use_hook_glitch": false,
+    "use_auto_bgm": false,
+    "no_subs": true,
+    "face_detector": "yolo",
+    "yolo_size": "8n",
+    "video_preset": "fast",
+    "video_scale_algo": "lanczos",
+    "video_sharpen": true,
+    "video_cq": 19,
+    "static_crop": true
+  },
+  "3": {
+    "ratio": "9:16",
+    "use_split_screen": true,
+    "split_trigger": "face",
+    "split_auto_zoom": true,
+    "split_zoom": 1.2,
+    "font_style": "STORYTELLER",
+    "use_auto_bgm": true,
+    "bgm_mood": "epic",
+    "no_subs": false,
+    "use_advanced_text": true
+  },
+  "4": {
+    "ratio": "16:9",
+    "font_style": "DEFAULT",
+    "use_hook_glitch": true,
+    "hook_duration": 4,
+    "use_broll": true,
+    "video_cq": 20,
+    "video_crf": 18,
+    "video_preset": "slow",
+    "video_scale_algo": "lanczos",
+    "ai_provider": "gemini",
+    "ollama_fallback_model": "gemini-3-flash-preview:cloud"
+  }
+}

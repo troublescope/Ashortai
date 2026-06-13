@@ -18,7 +18,16 @@ dependencies = [
     "google-auth-oauthlib",
     "google-auth-httplib2",
     "ultralytics",
+    "pyannote.audio",
+    "torch",
+    "torchaudio",
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "pydantic",
+    "openai",
     "gdown",
+    "youtube-transcript-api",
 ]
 
 [project.scripts]

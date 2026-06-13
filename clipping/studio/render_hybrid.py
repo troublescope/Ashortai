@@ -182,7 +182,17 @@ def buat_video_hybrid(
         face_box = None
 
         if cfg.face_detector == "yolo":
-            yolo_results = yolo_model(frame, verbose=False)
+            # Colab T4 optimization: disable grad + optional half-precision
+            try:
+                import torch
+                with torch.no_grad():
+                    if torch.cuda.is_available() and hasattr(yolo_model, "half") and getattr(cfg, "yolo_half", True):
+                        # Use half precision on CUDA for lower VRAM usage
+                        yolo_results = yolo_model(frame, verbose=False, half=True)
+                    else:
+                        yolo_results = yolo_model(frame, verbose=False)
+            except Exception:
+                yolo_results = yolo_model(frame, verbose=False)
             if yolo_results and len(yolo_results[0].boxes) > 0:
                 boxes = yolo_results[0].boxes.xyxy.cpu().numpy()
                 areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])

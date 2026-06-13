@@ -8,6 +8,7 @@ import json
 import os
 import re
 import time
+from types import SimpleNamespace
 
 from yt_dlp import YoutubeDL
 from faster_whisper import WhisperModel
@@ -296,6 +297,109 @@ def parse_youtube_json3_subs(json_path: str, max_words_per_subtitle: int = 5) ->
     except Exception as e:
         print(f"⚠️ Gagal memparsing JSON3: {e}")
         return "", []
+
+
+def _extract_youtube_video_id(url: str) -> str | None:
+    """Extract YouTube video ID from various URL formats."""
+    patterns = [
+        r"(?:v=|\/)([0-9A-Za-z_-]{11}).*",
+        r"(?:embed\/)([0-9A-Za-z_-]{11})",
+        r"(?:youtu\.be\/)([0-9A-Za-z_-]{11})",
+        r"(?:shorts\/)([0-9A-Za-z_-]{11})",
+    ]
+    for pat in patterns:
+        m = re.search(pat, url)
+        if m:
+            return m.group(1)
+    return None
+
+
+def fetch_youtube_transcript_api(
+    url: str,
+    max_words_per_subtitle: int = 5,
+    languages: list[str] | None = None,
+) -> tuple[str, list[dict]]:
+    """
+    Fetch transcript using youtube-transcript-api (fast, no Whisper needed).
+    Falls back to empty result if unavailable.
+    """
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+    except ImportError:
+        print("⚠️ youtube-transcript-api tidak terinstall. Install dengan: pip install youtube-transcript-api")
+        return "", []
+
+    video_id = _extract_youtube_video_id(url)
+    if not video_id:
+        print("⚠️ Tidak dapat mengekstrak video ID dari URL YouTube.")
+        return "", []
+
+    print(f"[2/3] Mencoba mengambil transcript via YouTube Transcript API ({video_id})...")
+
+    if languages is None:
+        languages = ["en", "id"]
+
+    transcript_list = None
+    for lang in languages:
+        try:
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[lang])
+            print(f"      ✅ Transcript ditemukan dalam bahasa '{lang}'.")
+            break
+        except Exception:
+            continue
+
+    if not transcript_list:
+        print("      ❌ Tidak ada transcript tersedia via API.")
+        return "", []
+
+    # Convert to internal word-level format (approximate word splitting)
+    transkrip_lengkap = ""
+    data_segmen: list[dict] = []
+    flat_words = []
+
+    for entry in transcript_list:
+        text = entry.get("text", "")
+        start = entry.get("start", 0.0)
+        duration = entry.get("duration", 0.0)
+        end = start + duration
+
+        # Clean text
+        clean_text = text.replace("\n", " ").replace("\u200b", "").strip()
+        clean_text = re.sub(r"[^\x00-\x7F\u00C0-\u017F\u2018-\u201F\u2026]", "", clean_text)
+        if not clean_text:
+            continue
+
+        words = clean_text.split()
+        if not words:
+            continue
+
+        word_dur = (end - start) / len(words)
+        for idx, w in enumerate(words):
+            w_start = start + idx * word_dur
+            w_end = w_start + word_dur
+            flat_words.append({"word": w, "start": w_start, "end": w_end})
+
+    # Adjust end times to prevent overlaps
+    for i in range(len(flat_words) - 1):
+        if flat_words[i]["end"] > flat_words[i + 1]["start"]:
+            flat_words[i]["end"] = max(flat_words[i]["start"] + 0.1, flat_words[i + 1]["start"])
+
+    # Group into segments
+    chunk_words = []
+    chunk_start = 0.0
+    for i, w in enumerate(flat_words):
+        if not chunk_words:
+            chunk_start = w["start"]
+        chunk_words.append(w)
+        if len(chunk_words) == max_words_per_subtitle or i == len(flat_words) - 1:
+            chunk_text = " ".join(cw["word"] for cw in chunk_words)
+            chunk_end = w["end"]
+            transkrip_lengkap += f"[{chunk_start:.1f} - {chunk_end:.1f}] {chunk_text}\n"
+            data_segmen.append({"start": chunk_start, "end": chunk_end, "words": chunk_words})
+            chunk_words = []
+
+    print(f"      ✅ Transcript API: {len(data_segmen)} segments, {len(flat_words)} words.")
+    return transkrip_lengkap, data_segmen
 
 
 def transcribe_video(
@@ -1025,10 +1129,76 @@ def analyze_with_nvidia(transkrip_lengkap: str, cfg) -> list[dict]:
     return hasil
 
 
+def analyze_with_ollama(transkrip_lengkap: str, cfg) -> list[dict]:
+    """Analyze transcript using a local or remote Ollama server."""
+    import requests
+
+    url = getattr(cfg, "ollama_url", "http://localhost:11434").rstrip("/")
+    model = getattr(cfg, "ollama_model", "llama3.1")
+    api_key = getattr(cfg, "ollama_api_key", "")
+
+    print(f"[3/3] Menganalisis Top {cfg.jumlah_clip} momen menggunakan Ollama ({model})...")
+    print(f"      URL: {url}")
+
+    prompt = get_analysis_prompt(transkrip_lengkap, cfg.jumlah_clip, cfg.durasi_hook, cfg=cfg)
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are a professional video editor and strategist. Return JSON only. Follow the provided JSON schema exactly."},
+            {"role": "user", "content": prompt}
+        ],
+        "stream": False,
+        "options": {
+            "temperature": 0.5,
+        },
+    }
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    response = requests.post(f"{url}/api/chat", json=payload, headers=headers, timeout=600)
+    response.raise_for_status()
+
+    data = response.json()
+    content = data.get("message", {}).get("content", "")
+
+    if not content:
+        raise ValueError("Ollama mengembalikan response kosong.")
+
+    # Strip markdown code fences if present
+    if "```" in content:
+        content = re.sub(r"```(json)?", "", content).strip()
+        content = content.split("```")[0].strip()
+
+    hasil = json.loads(content)
+
+    if isinstance(hasil, dict):
+        for key in ["clips", "data", "highlights"]:
+            if key in hasil and isinstance(hasil[key], list):
+                hasil = hasil[key]
+                break
+
+    if not isinstance(hasil, list):
+        if isinstance(hasil, dict):
+            return [hasil]
+        raise ValueError(f"Ollama mengembalikan format non-list/dict: {type(hasil)}")
+
+    return hasil
+
+
 def analyze_with_ai(transkrip_lengkap: str, cfg) -> list[dict]:
-    """Dispatcher for AI analysis based on provider."""
+    """Dispatcher for AI analysis based on provider.
+
+    Auto-fallback logic:
+      • gemini -> (on failure) ollama (using ollama_fallback_model / ollama_fallback_url)
+      • nvidia -> (on failure) gemini
+      • ollama -> (on failure) gemini
+    """
     provider = getattr(cfg, "ai_provider", "gemini")
-    
+
+    # ── NVIDIA ──
     if provider == "nvidia":
         if not cfg.api_key_nvidia:
             print("⚠️ NVIDIA_API_KEY tidak ditemukan! Mencoba fallback ke Gemini...")
@@ -1037,7 +1207,42 @@ def analyze_with_ai(transkrip_lengkap: str, cfg) -> list[dict]:
                 return analyze_with_nvidia(transkrip_lengkap, cfg)
             except Exception as e:
                 print(f"⚠️ NVIDIA API gagal: {e}. Fallback ke Gemini...")
-    
+
+    # ── OLLAMA ──
+    if provider == "ollama":
+        try:
+            return analyze_with_ollama(transkrip_lengkap, cfg)
+        except Exception as e:
+            print(f"⚠️ Ollama gagal: {e}. Fallback ke Gemini...")
+        return analyze_with_gemini(transkrip_lengkap, cfg)
+
+    # ── GEMINI (with auto-fallback to Ollama) ──
+    if provider == "gemini":
+        try:
+            return analyze_with_gemini(transkrip_lengkap, cfg)
+        except Exception as e:
+            print(f"⚠️ Gemini gagal: {e}")
+            print("🔄 Mencoba auto-fallback ke Ollama...")
+            try:
+                # Temporarily override ollama settings for fallback
+                fallback_cfg = SimpleNamespace(**vars(cfg))
+                fallback_cfg.ollama_url = getattr(
+                    cfg, "ollama_fallback_url", getattr(cfg, "ollama_url", "http://localhost:11434")
+                )
+                fallback_cfg.ollama_model = getattr(
+                    cfg, "ollama_fallback_model", getattr(cfg, "ollama_model", "llama3.1")
+                )
+                print(f"   🦙 Ollama fallback URL  : {fallback_cfg.ollama_url}")
+                print(f"   🦙 Ollama fallback model: {fallback_cfg.ollama_model}")
+                return analyze_with_ollama(transkrip_lengkap, fallback_cfg)
+            except Exception as e2:
+                print(f"❌ Ollama fallback juga gagal: {e2}")
+                raise RuntimeError(
+                    f"Semua AI provider gagal. Gemini error: {e} | Ollama error: {e2}"
+                ) from e2
+
+    # Unknown provider
+    print(f"⚠️ Provider '{provider}' tidak dikenal. Fallback ke Gemini...")
     return analyze_with_gemini(transkrip_lengkap, cfg)
 
 

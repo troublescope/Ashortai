@@ -10,6 +10,7 @@ import os
 
 from . import diarization as diarization_mod
 from . import engine, metadata, studio, hook_manager
+from .clip_config import load_external_clip_config, resolve_clip_cfg
 
 
 def run_pipeline(cfg) -> list[dict]:
@@ -34,6 +35,10 @@ def run_pipeline(cfg) -> list[dict]:
         Render manifest (one dict per clip).
     """
 
+    # ── Load external per-clip overrides (if provided) ──
+    external_clip_cfg = load_external_clip_config(
+        getattr(cfg, "clip_config_path", None)
+    )
     # Step 1 — Download
     source_platform = getattr(cfg, "source_platform", "youtube")
     engine.download_video(
@@ -44,31 +49,50 @@ def run_pipeline(cfg) -> list[dict]:
         source_platform=source_platform,
     )
 
+    # Optional Colab cleanup between stages
+    if getattr(cfg, "colab_cleanup", False):
+        from .colab_utils import free_gpu
+        free_gpu()
+
     # Step 2 — Transcribe
     transkrip_lengkap = ""
     data_segmen = []
 
-    import glob
+    # Priority 1: YouTube Transcript API (fastest, no local model)
+    if (
+        getattr(cfg, "use_yt_transcript_api", False)
+        and source_platform == "youtube"
+    ):
+        transkrip_lengkap, data_segmen = engine.fetch_youtube_transcript_api(
+            cfg.url_youtube,
+            max_words_per_subtitle=cfg.max_kata_per_subtitle,
+        )
+        if transkrip_lengkap and data_segmen:
+            print("✅ Berhasil mengambil subtitle via YouTube Transcript API, melewati Whisper.")
 
-    # Mencari file json3 apapun (karena bahasanya bisa .id.json3 atau .en.json3)
-    json3_files = glob.glob(cfg.file_video_asli.replace(".mp4", ".*.json3"))
-    file_json3 = json3_files[0] if json3_files else None
+    # Priority 2: yt-dlp JSON3 subtitles (fast, no Whisper)
+    if not transkrip_lengkap or not data_segmen:
+        import glob
 
-    # Only run YouTube JSON3 subtitle search for YouTube sources
-    if source_platform == "youtube":
-        if (
-            getattr(cfg, "use_dlp_subs", False)
-            and file_json3
-            and os.path.exists(file_json3)
-        ):
-            transkrip_lengkap, data_segmen = engine.parse_youtube_json3_subs(
-                file_json3, max_words_per_subtitle=cfg.max_kata_per_subtitle
-            )
-            if transkrip_lengkap and data_segmen:
-                print(
-                    f"✅ Berhasil memparsing subtitle dari YouTube ({os.path.basename(file_json3)}), melewati proses Whisper."
+        # Mencari file json3 apapun (karena bahasanya bisa .id.json3 atau .en.json3)
+        json3_files = glob.glob(cfg.file_video_asli.replace(".mp4", ".*.json3"))
+        file_json3 = json3_files[0] if json3_files else None
+
+        if source_platform == "youtube":
+            if (
+                getattr(cfg, "use_dlp_subs", False)
+                and file_json3
+                and os.path.exists(file_json3)
+            ):
+                transkrip_lengkap, data_segmen = engine.parse_youtube_json3_subs(
+                    file_json3, max_words_per_subtitle=cfg.max_kata_per_subtitle
                 )
+                if transkrip_lengkap and data_segmen:
+                    print(
+                        f"✅ Berhasil memparsing subtitle dari YouTube ({os.path.basename(file_json3)}), melewati proses Whisper."
+                    )
 
+    # Priority 3: Whisper (slowest but most accurate)
     if not transkrip_lengkap or not data_segmen:
         transkrip_lengkap, data_segmen = engine.transcribe_video(
             cfg.file_video_asli,
@@ -77,6 +101,11 @@ def run_pipeline(cfg) -> list[dict]:
             device=cfg.whisper_device,
             compute_type=cfg.whisper_compute_type,
         )
+
+    # Free VRAM after Whisper (large model) before loading Gemini/Pyannote
+    if getattr(cfg, "colab_cleanup", False):
+        from .colab_utils import free_gpu
+        free_gpu()
 
     # Step 3 — Gemini AI analysis
     gemini_output_path = os.path.join(cfg.outputs_dir, "gemini_response.json")
@@ -138,40 +167,21 @@ def run_pipeline(cfg) -> list[dict]:
             # Clean up temp audio
             if os.path.exists(audio_path):
                 os.remove(audio_path)
+            # Free VRAM after Pyannote before heavy render
+            if getattr(cfg, "colab_cleanup", False):
+                from .colab_utils import free_gpu
+                free_gpu()
         except Exception as e:
             print(f"⚠️ Diarization gagal: {e}")
             print("   Fallback ke mode render biasa (tanpa split-screen).")
             diarization_data = None
 
-    # Step 6 — Video encoder & glitch
-    os.environ["OSC_VIDEO_SCALE_ALGO"] = str(
-        getattr(cfg, "video_scale_algo", "lanczos")
-    )
-    
-    # Get target dimensions for auto-bitrate calculation
+    # Step 6 — Render each clip (encoder & glitch computed per-clip)
     import cv2
-    cap_e = cv2.VideoCapture(cfg.file_video_asli)
-    src_h_e = int(cap_e.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    cap_e.release()
-    
-    target_w_e, target_h_e = studio._get_render_dims(cfg, cfg.pilihan_rasio, source_h=src_h_e)
-    video_encoder = studio.detect_video_encoder(cfg, target_h=target_h_e)
+    cap_src = cv2.VideoCapture(cfg.file_video_asli)
+    src_h_global = int(cap_src.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap_src.release()
 
-    file_glitch_ts = None
-    if cfg.use_hook_glitch:
-        print("⚙️ Menyiapkan Video Glitch Transisi...")
-        
-        # Get source dimensions for proper glitch scaling
-        import cv2
-        cap_g = cv2.VideoCapture(cfg.file_video_asli)
-        source_h_g = int(cap_g.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        cap_g.release()
-
-        file_glitch_ts = studio.siapkan_glitch_video(
-            cfg.pilihan_rasio, cfg, video_encoder, source_h=source_h_g
-        )
-
-    # Step 6 — Render each clip
     render_manifest: list[dict] = []
 
     custom_hook_path = None
@@ -184,13 +194,32 @@ def run_pipeline(cfg) -> list[dict]:
         if custom_hook_path:
             klip["custom_hook_info"] = {"file_path": custom_hook_path}
 
+        # Resolve per-clip configuration (global + external JSON + clip metadata)
+        clip_cfg = resolve_clip_cfg(klip, cfg, external=external_clip_cfg)
+        clip_ratio = getattr(clip_cfg, "pilihan_rasio", cfg.pilihan_rasio)
+
+        # Per-clip encoder detection (handles quality overrides like video_cq, video_preset)
+        os.environ["OSC_VIDEO_SCALE_ALGO"] = str(
+            getattr(clip_cfg, "video_scale_algo", "lanczos")
+        )
+        target_w, target_h = studio._get_render_dims(clip_cfg, clip_ratio, source_h=src_h_global)
+        video_encoder = studio.detect_video_encoder(clip_cfg, target_h=target_h)
+
+        # Per-clip glitch transition (only if hook enabled for this clip)
+        file_glitch_ts = None
+        if getattr(clip_cfg, "use_hook_glitch", False):
+            print("⚙️ Menyiapkan Video Glitch Transisi...")
+            file_glitch_ts = studio.siapkan_glitch_video(
+                clip_ratio, clip_cfg, video_encoder, source_h=src_h_global
+            )
+
         hasil_render = studio.proses_klip(
             klip["rank"],
             klip,
-            cfg.pilihan_rasio,
+            clip_ratio,
             file_glitch_ts,
             data_segmen,
-            cfg,
+            clip_cfg,
             video_encoder,
             diarization_data=diarization_data,
         )

@@ -66,13 +66,13 @@ Path(".env").write_text(env_text, encoding="utf-8")
 
 **Cell 3: Execute (Example including Kaggle fallback for float32)**
 ```python
-URL_YOUTUBE = "https://www.youtube.com/watch?v=Dc4_aBFAYWE&pp=0gcJCdkKAYcqIYzv"
+URL_YOUTUBE = "https://www.youtube.com/watch?v=Dc4_aBFAYWE"
 JUMLAH_CLIP = 10
 RASIO = "9:16"
 FONT_STYLE = "DEFAULT"
 GEMINI_MODEL = "gemini-3-flash-preview"
 # Use 'float32' for Kaggle CPU/T4 limitations, or 'float16' for standard Colab T4 GPUs
-WHISPER_COMPUTE_TYPE = "float32"
+WHISPER_COMPUTE_TYPE = "float16"
 
 !python main.py \
   --url "{URL_YOUTUBE}" \
@@ -83,10 +83,22 @@ WHISPER_COMPUTE_TYPE = "float32"
   --words-per-sub 5 \
   --gemini-model "{GEMINI_MODEL}" \
   --whisper-compute-type "{WHISPER_COMPUTE_TYPE}" \
+  --colab-cleanup \
   --no-bgm
 ```
 
-*(Note: We have also included `notebooks/Lib_OpenSource_Clipping.ipynb` in the repo as a ready-to-use template).*
+> 🚀 **Recommended:** Use the new optimized notebook `notebooks/OpenSource_Clipping_Optimized.ipynb` instead of the legacy template. It includes:
+> - **1-Setup / 2-Config / 3-Runtime** cell architecture
+> - Google Drive model caching (skip re-downloads across sessions)
+> - Built-in VRAM/RAM/disk monitoring
+> - Aggressive GPU memory clearing between stages (`--colab-cleanup`)
+> - Auto zip & download outputs
+> - Pre-configured T4-optimized defaults (`ultrafast`, `bicubic`, `float16`)
+> - **Ollama** support (local/remote LLM inference)
+> - **YouTube Transcript API** (skip Whisper entirely when captions exist)
+> - **Per-clip overrides** — different ratio, font, hook, broll, split-screen per rank
+
+*(Legacy template still available at `notebooks/Lib_OpenSource_Clipping.ipynb`)*.
 
 ---
 
@@ -162,6 +174,26 @@ python main.py --url "VIDEO_URL" --source-height 1440 --render-height source --v
 # Use NVIDIA NIM (DeepSeek-V3) instead of Gemini
 python main.py --url "VIDEO_URL" --ai-provider nvidia --nvidia-model "deepseek-ai/deepseek-v4-pro"
 
+# Use local/remote Ollama (e.g. llama3.1, mistral, phi4)
+python main.py --url "VIDEO_URL" --ai-provider ollama --ollama-url "http://localhost:11434" --ollama-model "llama3.1"
+
+# Use authenticated Ollama endpoint
+python main.py --url "VIDEO_URL" --ai-provider ollama --ollama-url "https://ollama.my-server.com" --ollama-model "mistral" --ollama-api-key "$OLLAMA_API_KEY"
+
+# Gemini + auto-fallback to Ollama on failure (rate-limit, unavailable model, etc.)
+python main.py --url "VIDEO_URL" --ai-provider gemini --gemini-model "gemini-3-flash-preview" \
+  --ollama-fallback-url "http://localhost:11434" \
+  --ollama-fallback-model "gemini-3-flash-preview:cloud"
+
+# Skip Whisper — use YouTube Transcript API (fastest, no local model)
+python main.py --url "VIDEO_URL" --use-yt-transcript-api --no-bgm
+
+# Skip Whisper + skip BGM/B-roll/hook for pure extraction
+python main.py --url "VIDEO_URL" --use-yt-transcript-api --no-bgm --no-broll --no-hook
+
+# Per-clip overrides via JSON file
+python main.py --url "VIDEO_URL" --clip-config "my_overrides.json"
+
 # Square output for Instagram Feed (1:1)
 python main.py --url "VIDEO_URL" --ratio "1:1" --clips 5
 
@@ -194,8 +226,15 @@ python main.py --help
 | `--clips`, `-n` | `7` | Number of highlight clips to generate |
 | `--ratio`, `-r` | `9:16` | Output aspect ratio (`9:16`, `16:9`, `1:1`, `3:4`, `4:5`) |
 | `--source-height` | `max` | Preferred source download max height (`max`, `1080`, `1440`, `2160`, etc.) |
-| `--ai-provider` | `gemini` | AI provider for analysis (`gemini` or `nvidia`). |
+| `--ai-provider` | `gemini` | AI provider for analysis (`gemini`, `nvidia`, or `ollama`). |
 | `--nvidia-model` | `deepseek...` | Model name for NVIDIA NIM API (e.g. `deepseek-ai/deepseek-v3`). |
+| `--ollama-url` | `http://localhost:11434` | Ollama server base URL. |
+| `--ollama-model` | `llama3.1` | Ollama model tag (e.g. `mistral`, `phi4`, `codellama`). |
+| `--ollama-api-key` | `None` | Optional API key for authenticated Ollama endpoints. |
+| `--ollama-fallback-url` | same as `--ollama-url` | Ollama URL used when Gemini fails and auto-fallback triggers. |
+| `--ollama-fallback-model` | `gemini-3-flash-preview:cloud` | Ollama model used when Gemini fails and auto-fallback triggers. |
+| `--use-yt-transcript-api` | — | Use `youtube-transcript-api` to fetch captions before Whisper/yt-dlp. |
+| `--clip-config` | `None` | Path to JSON file with per-rank overrides (see example). |
 | `--render-height` | `1080` | Target render output height (`1080`, `1440`, `2160`, `source`) |
 | `--video-bitrate` | `auto` | Target video bitrate (e.g. 8M, 12M, auto). 'auto' scales based on resolution. |
 | `--video-sharpen` | — | Apply a subtle sharpening filter for clearer output. |
@@ -249,6 +288,7 @@ python main.py --help
 | `--track-smooth-window` | `12` | **[Experimental]** Frame window for layout stability (12 frames ≈ 0.5s) |
 | `--scene-cut-threshold` | `18` | **[Experimental]** Sensitivity for camera-cut detection (instantly resets history) |
 | `--track-iou-threshold` | `0.2` | **[Experimental]** Overlap threshold for merging duplicate detections |
+| `--colab-cleanup` | `False` | **[Colab]** Aggressively free GPU memory between stages and auto-clean temp files. Ideal for T4 notebooks. |
 
 ## 📐 Aspect Ratios
 
