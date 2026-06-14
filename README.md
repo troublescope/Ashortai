@@ -174,16 +174,22 @@ python main.py --url "VIDEO_URL" --source-height 1440 --render-height source --v
 # Use NVIDIA NIM (DeepSeek-V3) instead of Gemini
 python main.py --url "VIDEO_URL" --ai-provider nvidia --nvidia-model "deepseek-ai/deepseek-v4-pro"
 
-# Use local/remote Ollama (e.g. llama3.1, mistral, phi4)
+# Use local Ollama (e.g. llama3.1, mistral, phi4)
 python main.py --url "VIDEO_URL" --ai-provider ollama --ollama-url "http://localhost:11434" --ollama-model "llama3.1"
 
-# Use authenticated Ollama endpoint
+# Use Ollama cloud / OpenAI-compatible endpoint (e.g. ollama.com, OpenRouter, Together)
+python main.py --url "VIDEO_URL" --ai-provider ollama \
+  --ollama-url "https://ollama.com/api" \
+  --ollama-model "llama3.1" \
+  --ollama-api-key "$OLLAMA_API_KEY"
+
+# Use authenticated Ollama endpoint (custom / remote server)
 python main.py --url "VIDEO_URL" --ai-provider ollama --ollama-url "https://ollama.my-server.com" --ollama-model "mistral" --ollama-api-key "$OLLAMA_API_KEY"
 
 # Gemini + auto-fallback to Ollama on failure (rate-limit, unavailable model, etc.)
 python main.py --url "VIDEO_URL" --ai-provider gemini --gemini-model "gemini-3-flash-preview" \
   --ollama-fallback-url "http://localhost:11434" \
-  --ollama-fallback-model "gemini-3-flash-preview:cloud"
+  --ollama-fallback-model "llama3.1"
 
 # Skip Whisper — use YouTube Transcript API (fastest, no local model)
 python main.py --url "VIDEO_URL" --use-yt-transcript-api --no-bgm
@@ -228,11 +234,11 @@ python main.py --help
 | `--source-height` | `max` | Preferred source download max height (`max`, `1080`, `1440`, `2160`, etc.) |
 | `--ai-provider` | `gemini` | AI provider for analysis (`gemini`, `nvidia`, or `ollama`). |
 | `--nvidia-model` | `deepseek...` | Model name for NVIDIA NIM API (e.g. `deepseek-ai/deepseek-v3`). |
-| `--ollama-url` | `http://localhost:11434` | Ollama server base URL. |
-| `--ollama-model` | `llama3.1` | Ollama model tag (e.g. `mistral`, `phi4`, `codellama`). |
-| `--ollama-api-key` | `None` | Optional API key for authenticated Ollama endpoints. |
-| `--ollama-fallback-url` | same as `--ollama-url` | Ollama URL used when Gemini fails and auto-fallback triggers. |
-| `--ollama-fallback-model` | `gemini-3-flash-preview:cloud` | Ollama model used when Gemini fails and auto-fallback triggers. |
+| `--ollama-url` | `http://localhost:11434` | OpenAI-compatible base URL (local or cloud). Falls back to `OLLAMA_URL` env var. |
+| `--ollama-model` | `llama3.1` | Model ID (e.g. `llama3.1`, `mistral`, or cloud model names). |
+| `--ollama-api-key` | `None` | API key for authenticated endpoints. Falls back to `OLLAMA_API_KEY` env var. |
+| `--ollama-fallback-url` | same as `--ollama-url` | Fallback URL when Gemini fails. Defaults to `--ollama-url`. |
+| `--ollama-fallback-model` | `llama3.1` | Fallback model when Gemini fails and auto-fallback triggers. |
 | `--use-yt-transcript-api` | — | Use `youtube-transcript-api` to fetch captions before Whisper/yt-dlp. |
 | `--clip-config` | `None` | Path to JSON file with per-rank overrides (see example). |
 | `--render-height` | `1080` | Target render output height (`1080`, `1440`, `2160`, `source`) |

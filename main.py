@@ -41,7 +41,7 @@ def main():
     # Lazy import so --help works without heavy deps
     from clipping.runner import run_pipeline
 
-    if not cfg.api_key_gemini:
+    if cfg.ai_provider == "gemini" and not cfg.api_key_gemini:
         print("❌ ERROR: GOOGLE_API_KEY environment variable tidak ditemukan.")
         print("   Set via: export GOOGLE_API_KEY='your-key' atau buat file .env")
         sys.exit(1)

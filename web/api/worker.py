@@ -52,8 +52,8 @@ def _run_pipeline_sync(job_id: str, payload: dict) -> None:
             payload, job_id, env_overrides=_settings_env
         )
 
-        # Validate API key
-        if not cfg.api_key_gemini:
+        # Validate API key (Gemini provider only)
+        if cfg.ai_provider == "gemini" and not cfg.api_key_gemini:
             store.set_error(
                 job_id,
                 "GOOGLE_API_KEY tidak ditemukan. Set via Settings atau .env file.",

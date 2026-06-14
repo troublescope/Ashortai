@@ -417,27 +417,27 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--ollama-url",
         default="http://localhost:11434",
-        help="Ollama server base URL (e.g. http://localhost:11434 or https://ollama.com/api).",
+        help="OpenAI-compatible base URL for the LLM endpoint (e.g. http://localhost:11434 for local Ollama, https://openrouter.ai/api for cloud).",
     )
     p.add_argument(
         "--ollama-model",
         default="llama3.1",
-        help="Ollama model tag to use (e.g. llama3.1, mistral, phi4).",
+        help="Model name to use (e.g. llama3.1, mistral, phi4, or any OpenAI-compatible model ID).",
     )
     p.add_argument(
         "--ollama-api-key",
         default=None,
-        help="Optional API key for authenticated Ollama endpoints.",
+        help="API key for the endpoint (required for most cloud providers; optional for local Ollama).",
     )
     p.add_argument(
         "--ollama-fallback-url",
         default=None,
-        help="Ollama URL used when Gemini fails and auto-fallback is triggered. Defaults to --ollama-url.",
+        help="Fallback URL (OpenAI-compatible) used when Gemini fails and auto-fallback is triggered. Defaults to --ollama-url.",
     )
     p.add_argument(
         "--ollama-fallback-model",
         default="gemini-3-flash-preview:cloud",
-        help="Ollama model used when Gemini fails and auto-fallback is triggered.",
+        help="Fallback model used when Gemini fails and auto-fallback is triggered.",
     )
     p.add_argument(
         "--load-gemini-json",
@@ -756,7 +756,7 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         nvidia_model=args.nvidia_model,
         gemini_model=args.gemini_model,
         gemini_fallback_model=args.gemini_fallback_model,
-        ollama_url=args.ollama_url,
+        ollama_url=os.environ.get("OLLAMA_URL", args.ollama_url),
         ollama_model=args.ollama_model,
         ollama_api_key=args.ollama_api_key or os.environ.get("OLLAMA_API_KEY", ""),
         ollama_fallback_url=args.ollama_fallback_url or args.ollama_url,

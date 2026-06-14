@@ -1130,39 +1130,38 @@ def analyze_with_nvidia(transkrip_lengkap: str, cfg) -> list[dict]:
 
 
 def analyze_with_ollama(transkrip_lengkap: str, cfg) -> list[dict]:
-    """Analyze transcript using a local or remote Ollama server."""
-    import requests
+    """Analyze transcript using an OpenAI-compatible endpoint (Ollama, OpenRouter, etc.)."""
+    from openai import OpenAI
 
     url = getattr(cfg, "ollama_url", "http://localhost:11434").rstrip("/")
     model = getattr(cfg, "ollama_model", "llama3.1")
     api_key = getattr(cfg, "ollama_api_key", "")
 
+    # Normalize URL to OpenAI-compatible /v1 endpoint
+    if not url.endswith("/v1"):
+        url = f"{url}/v1"
+
     print(f"[3/3] Menganalisis Top {cfg.jumlah_clip} momen menggunakan Ollama ({model})...")
     print(f"      URL: {url}")
 
+    client = OpenAI(
+        base_url=url,
+        api_key=api_key or "not-needed",
+    )
+
     prompt = get_analysis_prompt(transkrip_lengkap, cfg.jumlah_clip, cfg.durasi_hook, cfg=cfg)
 
-    payload = {
-        "model": model,
-        "messages": [
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[
             {"role": "system", "content": "You are a professional video editor and strategist. Return JSON only. Follow the provided JSON schema exactly."},
             {"role": "user", "content": prompt}
         ],
-        "stream": False,
-        "options": {
-            "temperature": 0.5,
-        },
-    }
+        temperature=0.5,
+        max_tokens=16384,
+    )
 
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    response = requests.post(f"{url}/api/chat", json=payload, headers=headers, timeout=600)
-    response.raise_for_status()
-
-    data = response.json()
-    content = data.get("message", {}).get("content", "")
+    content = completion.choices[0].message.content
 
     if not content:
         raise ValueError("Ollama mengembalikan response kosong.")

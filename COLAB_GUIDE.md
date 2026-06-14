@@ -19,7 +19,7 @@ print("⏳ Cleaning workspace...")
 !rm -rf ./* ./.*
 
 print("⏳ Cloning OpenSource Clipping...")
-!git clone https://github.com/NaufalRizqullah/opensource-clipping.git .
+!git clone https://github.com/troublescope/Ashortai.git .
 
 print("⏳ Installing FFmpeg and dependencies (1-2 mins)...")
 !apt-get -qq update && apt-get -qq install -y ffmpeg
