@@ -90,6 +90,7 @@ def run_pipeline(cfg) -> list[dict]:
     t1 = time.time()
 
     # Priority 1: YouTube Transcript API (fastest, no local model)
+    transcript_api_success = False
     if (
         getattr(cfg, "use_yt_transcript_api", False)
         and source_platform == "youtube"
@@ -99,7 +100,8 @@ def run_pipeline(cfg) -> list[dict]:
             max_words_per_subtitle=cfg.max_kata_per_subtitle,
         )
         if transkrip_lengkap and data_segmen:
-            print("✅ Berhasil mengambil subtitle via YouTube Transcript API, melewati Whisper.")
+            transcript_api_success = True
+            print("✅ Berhasil mengambil subtitle via YouTube Transcript API. Melewati Whisper.")
 
     # Priority 2: yt-dlp JSON3 subtitles (fast, no Whisper)
     if not transkrip_lengkap or not data_segmen:
@@ -137,6 +139,8 @@ def run_pipeline(cfg) -> list[dict]:
             device=cfg.whisper_device,
             compute_type=cfg.whisper_compute_type,
         )
+    else:
+        _vprint(cfg, "   🚀 Whisper skipped because transcript source succeeded.")
 
     _vprint(
         cfg,
