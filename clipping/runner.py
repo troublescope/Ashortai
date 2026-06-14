@@ -128,16 +128,25 @@ def run_pipeline(cfg) -> list[dict]:
 
     # Priority 3: Whisper (slowest but most accurate)
     if not full_transcript or not segment_data:
+        whisper_model = cfg.whisper_model
+        whisper_device = cfg.whisper_device
+        whisper_compute = cfg.whisper_compute_type
+
+        # Auto-correct compute type if CPU does not support float16
+        if whisper_device == "cpu" and whisper_compute not in ("int8", "int8_float16"):
+            print(f"   ⚠️ CPU runtime detected; switching compute type from {whisper_compute} to int8.")
+            whisper_compute = "int8"
+
         _vprint(
             cfg,
-            f"   🔄 Falling back to Whisper: model={cfg.whisper_model}, device={cfg.whisper_device}, compute={cfg.whisper_compute_type}",
+            f"   🔄 Falling back to Whisper: model={whisper_model}, device={whisper_device}, compute={whisper_compute}",
         )
         full_transcript, segment_data = engine.transcribe_video(
             cfg.original_video_path,
             max_words_per_subtitle=cfg.max_words_per_subtitle,
-            model_size=cfg.whisper_model,
-            device=cfg.whisper_device,
-            compute_type=cfg.whisper_compute_type,
+            model_size=whisper_model,
+            device=whisper_device,
+            compute_type=whisper_compute,
         )
     else:
         _vprint(cfg, "   🚀 Whisper skipped because transcript source succeeded.")
