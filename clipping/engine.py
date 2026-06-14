@@ -96,6 +96,8 @@ def download_video(
     use_dlp_subs: bool = False,
     download_source_height: str | int = "max",
     source_platform: str = "youtube",
+    cookies_path: str | None = None,
+    cookies_from_browser: str | None = None,
 ) -> None:
     """
     Download a video to *output_path* with configurable source height.
@@ -145,6 +147,14 @@ def download_video(
             "quiet": True,
             "merge_output_format": "mp4",
         }
+
+    # --- Add cookies if provided (helps bypass YouTube bot checks) ---
+    if cookies_path and os.path.exists(cookies_path):
+        ydl_opts["cookies"] = cookies_path
+        print(f"      🍪 Using cookies file: {cookies_path}", flush=True)
+    elif cookies_from_browser:
+        ydl_opts["cookiesfrombrowser"] = cookies_from_browser
+        print(f"      🍪 Using cookies from browser: {cookies_from_browser}", flush=True)
 
     # --- Subtitle download — only supported for YouTube ---
     if use_dlp_subs and uses_youtube_format:

@@ -653,6 +653,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Print detailed pipeline progress, timings, and per-step diagnostics.",
     )
+    p.add_argument(
+        "--cookies",
+        default=None,
+        help="Path to a Netscape/Mozilla cookies.txt file for YouTube authentication (helps bypass bot checks).",
+    )
+    p.add_argument(
+        "--cookies-from-browser",
+        default=None,
+        help="Browser to load cookies from for YouTube (e.g. chrome, firefox). Requires browser cookie3 support.",
+    )
 
     return p
 
@@ -804,6 +814,8 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         colab_cleanup=args.colab_cleanup,
         clip_config_path=os.path.abspath(args.clip_config) if args.clip_config else None,
         verbose=args.verbose,
+        cookies_path=os.path.abspath(args.cookies) if args.cookies else None,
+        cookies_from_browser=args.cookies_from_browser,
     )
 
     return cfg

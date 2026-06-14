@@ -69,6 +69,8 @@ def run_pipeline(cfg) -> list[dict]:
         getattr(cfg, "use_dlp_subs", False),
         getattr(cfg, "download_source_height", "max"),
         source_platform=source_platform,
+        cookies_path=getattr(cfg, "cookies_path", None),
+        cookies_from_browser=getattr(cfg, "cookies_from_browser", None),
     )
     _vprint(cfg, f"   ⏱ Download took {time.time() - t0:.1f}s")
 
