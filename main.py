@@ -64,6 +64,7 @@ def main():
     print(f"   Rasio       : {cfg.pilihan_rasio}")
     print(f"   Font Style  : {cfg.gaya_font_aktif}")
     print(f"   Subtitles   : {'OFF' if cfg.no_subs else 'ON'}")
+    print(f"   Verbose     : {'ON' if getattr(cfg, 'verbose', False) else 'OFF'}")
     print(f"   B-Roll      : {'ON' if cfg.use_broll else 'OFF'}")
     print(f"   Hook Glitch : {'ON' if cfg.use_hook_glitch else 'OFF'}")
     print(f"   BGM         : {'ON' if cfg.use_auto_bgm else 'OFF'}")

@@ -12,8 +12,15 @@ Orchestrates the full Story Clip pipeline:
 
 import json
 import os
+import time
 
 from .story import loader, source_manager, assembler
+
+
+def _vprint(cfg, *args, **kwargs):
+    """Print only when verbose mode is enabled."""
+    if getattr(cfg, "verbose", False):
+        print(*args, **kwargs)
 
 
 # ==============================================================================
@@ -55,8 +62,18 @@ def _transcribe_sources(
     whisper_compute = getattr(cfg, "whisper_compute_type", "float16")
     max_words = getattr(cfg, "max_kata_per_subtitle", 5)
 
+    _vprint(
+        cfg,
+        "   🎙️ Whisper settings:",
+        f"      Model : {whisper_model}",
+        f"      Device: {whisper_device}",
+        f"      Compute: {whisper_compute}",
+        f"      Max words/subtitle: {max_words}",
+    )
+
     transcripts: dict[str, dict] = {}
     total = len(cached_paths)
+    t_all = time.time()
 
     for idx, (sid, video_path) in enumerate(cached_paths.items(), 1):
         transcript_path = os.path.join(cache_dir, f"{sid}_transcript.json")
@@ -102,6 +119,7 @@ def _transcribe_sources(
         except Exception as e:
             print(f"   ⚠️ '{sid}' gagal ditranskrip: {e}")
 
+    _vprint(cfg, f"   ⏱ Transcription stage took {time.time() - t_all:.1f}s")
     return transcripts
 
 
@@ -136,6 +154,11 @@ def run_story_pipeline(cfg) -> list[dict]:
     sources_path = getattr(cfg, "sources_json_path", "sources.json")
     print(f"\n[1/6] Loading sources: {sources_path}")
     source_registry = loader.load_sources(sources_path)
+    _vprint(
+        cfg,
+        f"   📚 Loaded {len(source_registry)} source(s):",
+        *[f"      - {sid}: {info.get('platform', 'unknown')}" for sid, info in source_registry.items()],
+    )
 
     # ------------------------------------------------------------------
     # Step 2 — Download & cache all sources
@@ -159,8 +182,19 @@ def run_story_pipeline(cfg) -> list[dict]:
     else:
         print(f"\n[2/6] Downloading sources → {cache_dir}")
         download_height = getattr(cfg, "download_source_height", "max")
+        _vprint(
+            cfg,
+            f"   📥 Download height: {download_height}",
+            f"   📥 Sources to download: {len(source_registry)}",
+        )
+        t_download = time.time()
         cached_paths = source_manager.download_all_sources(
             source_registry, cache_dir, download_height
+        )
+        _vprint(
+            cfg,
+            f"   ⏱ Download stage took {time.time() - t_download:.1f}s",
+            f"   📁 Cached paths: {cached_paths}",
         )
 
     # Save download status
@@ -179,6 +213,11 @@ def run_story_pipeline(cfg) -> list[dict]:
     recipe_path = getattr(cfg, "story_recipe_path", "story_recipe.json")
     print(f"\n[4/6] Loading recipe: {recipe_path}")
     recipe = loader.load_recipe(recipe_path, source_registry)
+    _vprint(
+        cfg,
+        f"   📖 Recipe loaded: {len(recipe.get('clips', []))} clip(s)",
+        f"   📖 Defaults: {recipe.get('_defaults', {})}",
+    )
 
     # ------------------------------------------------------------------
     # Step 5 — Assemble each clip (clean, no subs, no text overlay)
@@ -199,6 +238,7 @@ def run_story_pipeline(cfg) -> list[dict]:
     print(f"   Mode: kosongan (no subs, no text overlay)")
 
     manifest: list[dict] = []
+    t_assemble = time.time()
 
     for clip_config in sorted(clips, key=lambda c: c["clip_id"]):
         cid = clip_config["clip_id"]
@@ -210,8 +250,14 @@ def run_story_pipeline(cfg) -> list[dict]:
 
         clip_dir = os.path.join(story_output_dir, f"clip_{cid}")
         os.makedirs(clip_dir, exist_ok=True)
+        _vprint(
+            cfg,
+            f"   📁 Clip output dir: {clip_dir}",
+            f"   🎬 Segments: {len(clip_config.get('segments', []))}",
+        )
 
         # --- Assemble Hook (clean) ---
+        t_hook = time.time()
         hook_path = assembler.assemble_hook(
             clip_config=clip_config,
             source_registry=source_registry,
@@ -219,8 +265,10 @@ def run_story_pipeline(cfg) -> list[dict]:
             output_dir=clip_dir,
             ratio=ratio,
         )
+        _vprint(cfg, f"   ⏱ Hook assembly took {time.time() - t_hook:.1f}s → {hook_path}")
 
         # --- Assemble Highlight (clean) ---
+        t_highlight = time.time()
         highlight_path = assembler.assemble_highlight(
             clip_config=clip_config,
             source_registry=source_registry,
@@ -228,6 +276,7 @@ def run_story_pipeline(cfg) -> list[dict]:
             output_dir=clip_dir,
             ratio=ratio,
         )
+        _vprint(cfg, f"   ⏱ Highlight assembly took {time.time() - t_highlight:.1f}s → {highlight_path}")
 
         entry = {
             "clip_id": cid,
@@ -238,6 +287,8 @@ def run_story_pipeline(cfg) -> list[dict]:
             "metadata": clip_config.get("metadata", {}),
         }
         manifest.append(entry)
+
+    _vprint(cfg, f"\n   ⏱ Total assembly took {time.time() - t_assemble:.1f}s")
 
     # ------------------------------------------------------------------
     # Step 6 — Save manifest
@@ -256,6 +307,14 @@ def run_story_pipeline(cfg) -> list[dict]:
         }
     with open(transcripts_index_path, "w", encoding="utf-8") as f:
         json.dump(transcripts_summary, f, ensure_ascii=False, indent=2)
+
+    _vprint(
+        cfg,
+        "\n[6/6] 💾 Saving artifacts...",
+        f"   Manifest path: {manifest_path}",
+        f"   Transcripts index: {transcripts_index_path}",
+        f"   Total clips: {len(manifest)}",
+    )
 
     print(f"\n{'='*70}")
     print(f"✅ Story Clip selesai! {len(manifest)} clip(s) dirender.")

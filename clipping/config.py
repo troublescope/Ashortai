@@ -647,6 +647,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to JSON file with per-clip (per-rank) overrides. Keys are rank numbers (1,2,3...). See docs for available fields.",
     )
+    p.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        default=False,
+        help="Print detailed pipeline progress, timings, and per-step diagnostics.",
+    )
 
     return p
 
@@ -797,6 +803,7 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         skip_download=args.skip_download,
         colab_cleanup=args.colab_cleanup,
         clip_config_path=os.path.abspath(args.clip_config) if args.clip_config else None,
+        verbose=args.verbose,
     )
 
     return cfg
