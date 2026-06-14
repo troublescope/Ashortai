@@ -50,10 +50,10 @@ _is_vertical_ratio = utils._is_vertical_ratio
 typography = _load_studio_internal_module("typography.py", "clipping_studio_typography")
 download_google_font = typography.download_google_font
 register_fonts_for_libass = typography.register_fonts_for_libass
-siapkan_font_tipografi = typography.siapkan_font_tipografi
+prepare_typography_font = typography.prepare_typography_font
 
-def buat_file_ass(
-    data_segmen,
+def create_ass_file(
+    segment_data,
     start_clip,
     end_clip,
     nama_file_ass,
@@ -102,26 +102,26 @@ def buat_file_ass(
     outline_val = 3 if pakai_karaoke else 0.2
     shadow_val = 2.5 if pakai_karaoke else 0.2
 
-    daftar_font = cfg.daftar_font
-    gaya = cfg.gaya_font_aktif
+    font_list = cfg.font_list
+    style = cfg.active_font_style
     font_dir = cfg.font_dir
 
-    font_utama_dict = daftar_font[gaya]["utama"]
-    font_khusus_dict = daftar_font[gaya]["khusus"]
+    main_font_dict = font_list[style]["utama"]
+    special_font_dict = font_list[style]["khusus"]
 
-    font_utama = font_utama_dict["nama"]
-    font_khusus = font_khusus_dict["nama"]
+    main_font = main_font_dict["nama"]
+    special_font = special_font_dict["nama"]
 
-    scale_base_khusus = (
-        cfg.scale_kata_khusus_916 if _is_vertical_ratio(rasio) else cfg.scale_kata_khusus_169
+    special_scale_base = (
+        cfg.special_word_scale_9_16 if _is_vertical_ratio(rasio) else cfg.special_word_scale_16_9
     )
-    warna_khusus = cfg.warna_kata_khusus
+    special_color = cfg.special_word_color
 
     def get_scale_value(level):
         if level == 3:
-            return scale_base_khusus
+            return special_scale_base
         elif level == 2:
-            return int((scale_base_khusus + 100) / 2)
+            return int((special_scale_base + 100) / 2)
         else:
             return 110
 
@@ -133,9 +133,9 @@ def buat_file_ass(
     # Calculate scale relative to standard 1080p vertical (1920 height)
     # This ensures typography looks consistent across different render resolutions
     scale_factor = play_res_y / (1920 if _is_vertical_ratio(rasio) else 1080)
-    align = cfg.ass_align_916 if _is_vertical_ratio(rasio) else cfg.ass_align_169
-    margin_v = int((cfg.ass_margin_916 if _is_vertical_ratio(rasio) else cfg.ass_margin_169) * scale_factor)
-    font_sz = int((cfg.ass_font_916 if _is_vertical_ratio(rasio) else cfg.ass_font_169) * scale_factor)
+    align = cfg.ass_align_9_16 if _is_vertical_ratio(rasio) else cfg.ass_align_16_9
+    margin_v = int((cfg.ass_margin_9_16 if _is_vertical_ratio(rasio) else cfg.ass_margin_16_9) * scale_factor)
+    font_sz = int((cfg.ass_font_9_16 if _is_vertical_ratio(rasio) else cfg.ass_font_16_9) * scale_factor)
     margin_lr = int((60 if _is_vertical_ratio(rasio) else 40) * scale_factor)
 
     header = (
@@ -147,7 +147,7 @@ def buat_file_ass(
         f"ScaledBorderAndShadow: yes\n\n"
         f"[V4+ Styles]\n"
         f"Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
-        f"Style: Default,{font_utama},{font_sz},&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,{outline_val},{shadow_val},{align},{margin_lr},{margin_lr},{margin_v},1\n\n"
+        f"Style: Default,{main_font},{font_sz},&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,{outline_val},{shadow_val},{align},{margin_lr},{margin_lr},{margin_v},1\n\n"
         f"[Events]\n"
         f"Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
@@ -159,7 +159,7 @@ def buat_file_ass(
     if not pakai_advanced:
         with open(nama_file_ass, "w", encoding="utf-8") as f:
             f.write(header)
-            for seg in data_segmen:
+            for seg in segment_data:
                 seg_s = max(0, seg["start"] - start_clip)
                 seg_e = min(end_clip - start_clip, seg["end"] - start_clip)
                 if seg_s >= seg_e:
@@ -201,10 +201,10 @@ def buat_file_ass(
     # Advanced typography mode
     font_cache = {}
 
-    def get_cached_font(is_khusus, scale_val):
-        key = f"{is_khusus}_{scale_val}"
+    def get_cached_font(is_special, scale_val):
+        key = f"{is_special}_{scale_val}"
         if key not in font_cache:
-            f_info = font_khusus_dict if is_khusus else font_utama_dict
+            f_info = special_font_dict if is_special else main_font_dict
             f_file = f_info["file"]
             f_path = os.path.join(font_dir, f_file)
 
@@ -229,7 +229,7 @@ def buat_file_ass(
     with open(nama_file_ass, "w", encoding="utf-8") as f:
         f.write(header)
 
-        for seg in data_segmen:
+        for seg in segment_data:
             seg_s = max(0, seg["start"] - start_clip)
             seg_e = min(end_clip - start_clip, seg["end"] - start_clip)
             if seg_s >= seg_e:
@@ -247,9 +247,9 @@ def buat_file_ass(
                 if plan:
                     w_style = plan.get("style", "khusus")
                     w_scale = get_scale_value(plan.get("scale_level", 2))
-                    is_khusus = w_style == "khusus"
+                    is_special = w_style == "khusus"
 
-                    pil_font = get_cached_font(is_khusus, w_scale)
+                    pil_font = get_cached_font(is_special, w_scale)
                     raw_w = (
                         pil_font.getlength(w_dict["word"])
                         if hasattr(pil_font, "getlength")
@@ -333,14 +333,14 @@ def buat_file_ass(
                             w_data["plan"].get("scale_level", 2)
                         )
                         font_info = (
-                            font_khusus_dict if w_style == "khusus" else font_utama_dict
+                            special_font_dict if w_style == "khusus" else main_font_dict
                         )
                         f_tag = build_font_tag(font_info)
-                        c_tag = f"\\c{warna_khusus}"
+                        c_tag = f"\\c{special_color}"
                     else:
                         w_anim = "none"
                         target_scale = 100
-                        f_tag = build_font_tag(font_utama_dict)
+                        f_tag = build_font_tag(main_font_dict)
                         c_tag = "\\c&HFFFFFF&"
 
                     t_start = w_appear_ms

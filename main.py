@@ -27,7 +27,7 @@ def main():
         print("=" * 70)
         print(f"   Recipe      : {cfg.story_recipe_path}")
         print(f"   Sources     : {cfg.sources_json_path}")
-        print(f"   Rasio       : {cfg.pilihan_rasio}")
+        print(f"   Rasio       : {cfg.selected_ratio}")
         print(f"   Output Dir  : {cfg.story_output_dir}")
         print(f"   Skip DL     : {'YES' if cfg.skip_download else 'NO'}")
         print("=" * 70)
@@ -59,10 +59,10 @@ def main():
     print(f"🎬 OpenSource Clipping v{version}")
     print("=" * 70)
     print(f"   Source      : {platform_label}")
-    print(f"   URL         : {cfg.url_youtube}")
-    print(f"   Jumlah Clip : {cfg.jumlah_clip}")
-    print(f"   Rasio       : {cfg.pilihan_rasio}")
-    print(f"   Font Style  : {cfg.gaya_font_aktif}")
+    print(f"   URL         : {cfg.video_url}")
+    print(f"   Jumlah Clip : {cfg.num_clips}")
+    print(f"   Rasio       : {cfg.selected_ratio}")
+    print(f"   Font Style  : {cfg.active_font_style}")
     print(f"   Subtitles   : {'OFF' if cfg.no_subs else 'ON'}")
     print(f"   Verbose     : {'ON' if getattr(cfg, 'verbose', False) else 'OFF'}")
     print(f"   B-Roll      : {'ON' if cfg.use_broll else 'OFF'}")
@@ -79,7 +79,7 @@ def main():
 
     run_pipeline(cfg)
 
-    print("\n✅ Selesai! Semua klip telah dirender.")
+    print("\n✅ Selesai! Semua clip telah dirender.")
 
 
 if __name__ == "__main__":

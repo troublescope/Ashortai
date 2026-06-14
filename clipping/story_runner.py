@@ -60,7 +60,7 @@ def _transcribe_sources(
     whisper_model = getattr(cfg, "whisper_model", "large-v3")
     whisper_device = getattr(cfg, "whisper_device", "cuda")
     whisper_compute = getattr(cfg, "whisper_compute_type", "float16")
-    max_words = getattr(cfg, "max_kata_per_subtitle", 5)
+    max_words = getattr(cfg, "max_words_per_subtitle", 5)
 
     _vprint(
         cfg,
@@ -94,7 +94,7 @@ def _transcribe_sources(
 
         print(f"   🎤 [{idx}/{total}] Transcribing '{sid}'...")
         try:
-            transkrip, segmen = engine.transcribe_video(
+            transcript, segments = engine.transcribe_video(
                 video_path,
                 max_words_per_subtitle=max_words,
                 model_size=whisper_model,
@@ -104,8 +104,8 @@ def _transcribe_sources(
 
             result = {
                 "source_id": sid,
-                "transkrip": transkrip,
-                "segmen": segmen,
+                "transkrip": transcript,
+                "segmen": segments,
                 "path": transcript_path,
             }
 
@@ -114,7 +114,7 @@ def _transcribe_sources(
                 json.dump(result, f, ensure_ascii=False, indent=2)
 
             transcripts[sid] = result
-            print(f"   ✅ '{sid}' berhasil ditranskrip ({len(segmen)} segmen).")
+            print(f"   ✅ '{sid}' berhasil ditranskrip ({len(segments)} segmen).")
 
         except Exception as e:
             print(f"   ⚠️ '{sid}' gagal ditranskrip: {e}")
@@ -224,7 +224,7 @@ def run_story_pipeline(cfg) -> list[dict]:
     # ------------------------------------------------------------------
     clips = recipe.get("clips", [])
     defaults = recipe.get("_defaults", None)
-    ratio = getattr(cfg, "pilihan_rasio", None) or (defaults.ratio if defaults else "9:16")
+    ratio = getattr(cfg, "selected_ratio", None) or (defaults.ratio if defaults else "9:16")
 
     story_output_dir = getattr(
         cfg, "story_output_dir",

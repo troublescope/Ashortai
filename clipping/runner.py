@@ -58,14 +58,14 @@ def run_pipeline(cfg) -> list[dict]:
     _vprint(
         cfg,
         f"\n[1/7] 📥 Downloading video from {source_platform}...",
-        f"   Source URL : {cfg.url_youtube}",
-        f"   Output     : {cfg.file_video_asli}",
+        f"   Source URL : {cfg.video_url}",
+        f"   Output     : {cfg.original_video_path}",
         f"   Max height : {getattr(cfg, 'download_source_height', 'max')}",
     )
     t0 = time.time()
     engine.download_video(
-        cfg.url_youtube,
-        cfg.file_video_asli,
+        cfg.video_url,
+        cfg.original_video_path,
         getattr(cfg, "use_dlp_subs", False),
         getattr(cfg, "download_source_height", "max"),
         source_platform=source_platform,
@@ -80,8 +80,8 @@ def run_pipeline(cfg) -> list[dict]:
         free_gpu()
 
     # Step 2 — Transcribe
-    transkrip_lengkap = ""
-    data_segmen = []
+    full_transcript = ""
+    segment_data = []
     _vprint(
         cfg,
         "\n[2/7] 🎙️ Transcribing audio...",
@@ -95,20 +95,20 @@ def run_pipeline(cfg) -> list[dict]:
         getattr(cfg, "use_yt_transcript_api", False)
         and source_platform == "youtube"
     ):
-        transkrip_lengkap, data_segmen = engine.fetch_youtube_transcript_api(
-            cfg.url_youtube,
-            max_words_per_subtitle=cfg.max_kata_per_subtitle,
+        full_transcript, segment_data = engine.fetch_youtube_transcript_api(
+            cfg.video_url,
+            max_words_per_subtitle=cfg.max_words_per_subtitle,
         )
-        if transkrip_lengkap and data_segmen:
+        if full_transcript and segment_data:
             transcript_api_success = True
             print("✅ Berhasil mengambil subtitle via YouTube Transcript API. Melewati Whisper.")
 
     # Priority 2: yt-dlp JSON3 subtitles (fast, no Whisper)
-    if not transkrip_lengkap or not data_segmen:
+    if not full_transcript or not segment_data:
         import glob
 
         # Mencari file json3 apapun (karena bahasanya bisa .id.json3 atau .en.json3)
-        json3_files = glob.glob(cfg.file_video_asli.replace(".mp4", ".*.json3"))
+        json3_files = glob.glob(cfg.original_video_path.replace(".mp4", ".*.json3"))
         file_json3 = json3_files[0] if json3_files else None
         _vprint(cfg, f"   🔍 Looking for downloaded json3 subtitles: {json3_files}")
 
@@ -118,23 +118,23 @@ def run_pipeline(cfg) -> list[dict]:
                 and file_json3
                 and os.path.exists(file_json3)
             ):
-                transkrip_lengkap, data_segmen = engine.parse_youtube_json3_subs(
-                    file_json3, max_words_per_subtitle=cfg.max_kata_per_subtitle
+                full_transcript, segment_data = engine.parse_youtube_json3_subs(
+                    file_json3, max_words_per_subtitle=cfg.max_words_per_subtitle
                 )
-                if transkrip_lengkap and data_segmen:
+                if full_transcript and segment_data:
                     print(
                         f"✅ Berhasil memparsing subtitle dari YouTube ({os.path.basename(file_json3)}), melewati proses Whisper."
                     )
 
     # Priority 3: Whisper (slowest but most accurate)
-    if not transkrip_lengkap or not data_segmen:
+    if not full_transcript or not segment_data:
         _vprint(
             cfg,
             f"   🔄 Falling back to Whisper: model={cfg.whisper_model}, device={cfg.whisper_device}, compute={cfg.whisper_compute_type}",
         )
-        transkrip_lengkap, data_segmen = engine.transcribe_video(
-            cfg.file_video_asli,
-            max_words_per_subtitle=cfg.max_kata_per_subtitle,
+        full_transcript, segment_data = engine.transcribe_video(
+            cfg.original_video_path,
+            max_words_per_subtitle=cfg.max_words_per_subtitle,
             model_size=cfg.whisper_model,
             device=cfg.whisper_device,
             compute_type=cfg.whisper_compute_type,
@@ -145,8 +145,8 @@ def run_pipeline(cfg) -> list[dict]:
     _vprint(
         cfg,
         f"   ⏱ Transcription took {time.time() - t1:.1f}s",
-        f"   📝 Transcript length: {len(transkrip_lengkap)} chars",
-        f"   🧩 Segments: {len(data_segmen)}",
+        f"   📝 Transcript length: {len(full_transcript)} chars",
+        f"   🧩 Segments: {len(segment_data)}",
     )
 
     # Free VRAM after Whisper (large model) before loading Gemini/Pyannote
@@ -166,35 +166,35 @@ def run_pipeline(cfg) -> list[dict]:
     if getattr(cfg, "load_gemini_json", False) and os.path.exists(gemini_output_path):
         print(f"\n🔄 [3/3] Memuat data AI ({cfg.ai_provider}) dari file lokal: {gemini_output_path}")
         with open(gemini_output_path, "r", encoding="utf-8") as f:
-            hasil_json = json.load(f)
+            analysis_result = json.load(f)
         _vprint(cfg, f"   ⏱ Loaded saved AI response in {time.time() - t2:.1f}s")
     else:
-        hasil_json = engine.analyze_with_ai(transkrip_lengkap, cfg)
+        analysis_result = engine.analyze_with_ai(full_transcript, cfg)
         _vprint(cfg, f"   ⏱ AI analysis took {time.time() - t2:.1f}s")
         
         # Save raw gemini json for future loading/reproduction
         with open(gemini_output_path, "w", encoding="utf-8") as f:
-            json.dump(hasil_json, f, indent=4, ensure_ascii=False)
+            json.dump(analysis_result, f, indent=4, ensure_ascii=False)
         print(f"💾 Raw AI response tersimpan di: {gemini_output_path}")
 
     # Step 4 — Metadata normalisation
-    hasil_json = metadata.normalize_and_validate(hasil_json)
+    analysis_result = metadata.normalize_and_validate(analysis_result)
     _vprint(
         cfg,
         "\n[4/7] 📊 Normalizing metadata...",
-        f"   Clips returned: {len(hasil_json)}",
+        f"   Clips returned: {len(analysis_result)}",
     )
-    metadata.print_preview(hasil_json)
+    metadata.print_preview(analysis_result)
 
     metadata_path = os.path.join(cfg.outputs_dir, "metadata_preview.json")
-    metadata.save_metadata_preview(hasil_json, path=metadata_path)
+    metadata.save_metadata_preview(analysis_result, path=metadata_path)
 
     # Step 5 — Diarization (split-screen / camera-switch)
     diarization_data = None
     needs_diarization = (
         (getattr(cfg, "use_split_screen", False) and cfg.split_trigger == "diarization")
         or getattr(cfg, "use_camera_switch", False)
-    ) and studio._is_vertical_ratio(cfg.pilihan_rasio)
+    ) and studio._is_vertical_ratio(cfg.selected_ratio)
     _vprint(
         cfg,
         f"\n[5/7] 🎙️ Diarization (split-screen/camera-switch)...",
@@ -209,15 +209,15 @@ def run_pipeline(cfg) -> list[dict]:
                 else "Camera-Switch"
             )
             print(f"\n🎙️ [{mode_label}] Menjalankan speaker diarization...")
-            audio_path = cfg.file_video_asli.replace(".mp4", "_audio.wav")
-            diarization_mod.extract_audio(cfg.file_video_asli, audio_path)
+            audio_path = cfg.original_video_path.replace(".mp4", "_audio.wav")
+            diarization_mod.extract_audio(cfg.original_video_path, audio_path)
             num_speakers_arg = getattr(cfg, "diarization_num_speakers", 2)
             min_spk = None
             max_spk = None
 
             if str(num_speakers_arg).lower() == "auto":
                 max_faces = studio.estimate_speaker_count_from_video(
-                    cfg.file_video_asli, cfg
+                    cfg.original_video_path, cfg
                 )
                 num_speakers_arg = "auto"
                 min_spk = max(1, max_faces)
@@ -247,14 +247,14 @@ def run_pipeline(cfg) -> list[dict]:
 
     # Step 6 — Render each clip (encoder & glitch computed per-clip)
     import cv2
-    cap_src = cv2.VideoCapture(cfg.file_video_asli)
+    cap_src = cv2.VideoCapture(cfg.original_video_path)
     src_h_global = int(cap_src.get(cv2.CAP_PROP_FRAME_HEIGHT))
     cap_src.release()
     _vprint(
         cfg,
         f"\n[6/7] 🎬 Rendering clips...",
         f"   Source height: {src_h_global}px",
-        f"   Total clips : {len(hasil_json)}",
+        f"   Total clips : {len(analysis_result)}",
     )
     t4 = time.time()
 
@@ -262,20 +262,20 @@ def run_pipeline(cfg) -> list[dict]:
 
     custom_hook_path = None
     if getattr(cfg, "hook_source", None):
-        print("\n🎣 Mengunduh sumber klip Hook kustom...")
+        print("\n🎣 Mengunduh sumber clip Hook kustom...")
         custom_hook_path = hook_manager.download_custom_hook(cfg)
         _vprint(cfg, f"   Custom hook path: {custom_hook_path}")
 
-    for klip in sorted(hasil_json, key=lambda x: x["rank"]):
-        rank = klip["rank"]
-        title = klip.get("title", "")
+    for clip in sorted(analysis_result, key=lambda x: x["rank"]):
+        rank = clip["rank"]
+        title = clip.get("title", "")
         
         if custom_hook_path:
-            klip["custom_hook_info"] = {"file_path": custom_hook_path}
+            clip["custom_hook_info"] = {"file_path": custom_hook_path}
 
         # Resolve per-clip configuration (global + external JSON + clip metadata)
-        clip_cfg = resolve_clip_cfg(klip, cfg, external=external_clip_cfg)
-        clip_ratio = getattr(clip_cfg, "pilihan_rasio", cfg.pilihan_rasio)
+        clip_cfg = resolve_clip_cfg(clip, cfg, external=external_clip_cfg)
+        clip_ratio = getattr(clip_cfg, "selected_ratio", cfg.selected_ratio)
 
         # Per-clip encoder detection (handles quality overrides like video_cq, video_preset)
         os.environ["OSC_VIDEO_SCALE_ALGO"] = str(
@@ -296,22 +296,22 @@ def run_pipeline(cfg) -> list[dict]:
         )
 
         # Per-clip glitch transition (only if hook enabled for this clip)
-        file_glitch_ts = None
+        glitch_video_path = None
         if getattr(clip_cfg, "use_hook_glitch", False):
             print("⚙️ Menyiapkan Video Glitch Transisi...")
             t_glitch = time.time()
-            file_glitch_ts = studio.siapkan_glitch_video(
+            glitch_video_path = studio.prepare_glitch_video(
                 clip_ratio, clip_cfg, video_encoder, source_h=src_h_global
             )
             _vprint(cfg, f"      ⏱ Glitch prep took {time.time() - t_glitch:.1f}s")
 
         t_clip = time.time()
-        hasil_render = studio.proses_klip(
+        render_result = studio.process_clip(
             rank,
-            klip,
+            clip,
             clip_ratio,
-            file_glitch_ts,
-            data_segmen,
+            glitch_video_path,
+            segment_data,
             clip_cfg,
             video_encoder,
             diarization_data=diarization_data,
@@ -319,10 +319,10 @@ def run_pipeline(cfg) -> list[dict]:
         _vprint(
             cfg,
             f"      ⏱ Render took {time.time() - t_clip:.1f}s",
-            f"      Output: {hasil_render.get('output_path') if hasil_render else 'FAILED'}",
+            f"      Output: {render_result.get('output_path') if render_result else 'FAILED'}",
         )
-        if hasil_render:
-            render_manifest.append(hasil_render)
+        if render_result:
+            render_manifest.append(render_result)
 
     _vprint(cfg, f"\n   ⏱ Total render loop took {time.time() - t4:.1f}s")
 

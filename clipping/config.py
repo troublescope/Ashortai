@@ -23,12 +23,12 @@ BASE_DIR = os.getcwd()
 FONT_DIR = os.path.abspath(os.path.join(BASE_DIR, "custom_fonts"))
 
 # 1. PENGATURAN UTAMA
-JUMLAH_CLIP = 7
-PILIHAN_RASIO = "9:16"
+NUM_CLIPS = 7
+SELECTED_RATIO = "9:16"
 
 # 2. PENGATURAN KONTEN & HOOK
-MAX_KATA_PER_SUBTITLE = 5
-DURASI_HOOK = 3
+MAX_WORDS_PER_SUBTITLE = 5
+HOOK_DURATION = 3
 USE_BROLL = True
 USE_HOOK_GLITCH = True
 USE_SPLIT_SCREEN = False
@@ -44,9 +44,9 @@ USE_ADVANCED_TEXT = False
 USE_ADVANCED_TEXT_ON_HOOK = False
 USE_KARAOKE_EFFECT = True
 
-GAYA_FONT_AKTIF = "HORMOZI"
+ACTIVE_FONT_STYLE = "HORMOZI"
 
-DAFTAR_FONT = {
+FONT_LIST = {
     "DEFAULT": {
         "utama": {
             "nama": "Montserrat Black",
@@ -106,28 +106,28 @@ DAFTAR_FONT = {
 }
 
 # Khusus 9:16 (Vertikal)
-ASS_ALIGN_916 = 2
-ASS_MARGIN_916 = 450
-ASS_FONT_916 = 90
-SCALE_KATA_KHUSUS_916 = ASS_FONT_916 + 120
+ASS_ALIGN_9_16 = 2
+ASS_MARGIN_9_16 = 450
+ASS_FONT_9_16 = 90
+SPECIAL_WORD_SCALE_9_16 = ASS_FONT_9_16 + 120
 
 # Khusus 16:9 (Horizontal)
-ASS_ALIGN_169 = 2
-ASS_MARGIN_169 = 70
-ASS_FONT_169 = 80
-SCALE_KATA_KHUSUS_169 = ASS_FONT_169 + 120
+ASS_ALIGN_16_9 = 2
+ASS_MARGIN_16_9 = 70
+ASS_FONT_16_9 = 80
+SPECIAL_WORD_SCALE_16_9 = ASS_FONT_16_9 + 120
 
 # Warna Kata Khusus  (Format ASS: BGR -> &H[Blue][Green][Red]&)
-WARNA_KATA_KHUSUS = "&HFFFFFF&"
+SPECIAL_WORD_COLOR = "&HFFFFFF&"
 
 # 4. PENGATURAN ASSET EKSTERNAL
-NAMA_FONT_THUMBNAIL = "Montserrat-Black.ttf"
-URL_FONT_THUMBNAIL = (
+THUMBNAIL_FONT_NAME = "Montserrat-Black.ttf"
+THUMBNAIL_FONT_URL = (
     "https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-Black.ttf"
 )
 
 URL_GLITCH_VIDEO = "https://www.youtube.com/watch?v=5nBcNRYmjs0"
-URL_MEDIAPIPE_MODEL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/latest/blaze_face_full_range.tflite"
+MEDIAPIPE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_full_range/float16/latest/blaze_face_full_range.tflite"
 
 # 5. PENGATURAN Auto-BGM & Audio Ducking
 USE_AUTO_BGM = True
@@ -220,13 +220,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--clips",
         "-n",
         type=int,
-        default=JUMLAH_CLIP,
+        default=NUM_CLIPS,
         help="Number of highlight clips to generate",
     )
     p.add_argument(
         "--ratio",
         "-r",
-        default=PILIHAN_RASIO,
+        default=SELECTED_RATIO,
         choices=["9:16", "16:9", "1:1", "3:4", "4:5"],
         help="Output aspect ratio",
     )
@@ -246,13 +246,13 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--words-per-sub",
         type=int,
-        default=MAX_KATA_PER_SUBTITLE,
+        default=MAX_WORDS_PER_SUBTITLE,
         help="Max words per karaoke subtitle group",
     )
     p.add_argument(
         "--hook-duration",
         type=int,
-        default=DURASI_HOOK,
+        default=HOOK_DURATION,
         help="Hook teaser duration in seconds",
     )
     p.add_argument(
@@ -346,7 +346,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- Subtitle & Tipografi ---
     p.add_argument(
         "--font-style",
-        default=GAYA_FONT_AKTIF,
+        default=ACTIVE_FONT_STYLE,
         choices=["DEFAULT", "STORYTELLER", "HORMOZI", "CINEMATIC"],
         help="Font style preset",
     )
@@ -687,18 +687,18 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         base_dir=base_dir,
         outputs_dir=outputs_dir,
         font_dir=font_dir,
-        file_video_asli=os.path.abspath(os.path.join(base_dir, "video_asli.mp4")),
-        file_font_thumbnail=os.path.abspath(
-            os.path.join(base_dir, NAMA_FONT_THUMBNAIL)
+        original_video_path=os.path.abspath(os.path.join(base_dir, "video_asli.mp4")),
+        thumbnail_font_path=os.path.abspath(
+            os.path.join(base_dir, THUMBNAIL_FONT_NAME)
         ),
-        file_mediapipe_model=os.path.abspath(
+        mediapipe_model_path=os.path.abspath(
             os.path.join(base_dir, "blaze_face_full_range.tflite")
         ),
         # YOLO configs
         face_detector=args.face_detector,
         yolo_size=args.yolo_size,
-        url_yolo_model=f"https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov{args.yolo_size}.pt",
-        file_yolo_model=os.path.abspath(
+        yolo_model_url=f"https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov{args.yolo_size}.pt",
+        yolo_model_path=os.path.abspath(
             os.path.join(base_dir, f"face_yolov{args.yolo_size}.pt")
         ),
         # API keys (from env)
@@ -707,14 +707,14 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         pexels_api_key=os.environ.get("PEXELS_API_KEY", ""),
         # Pengaturan utama
         source_platform="tiktok" if args.tiktok else args.source,
-        url_youtube=args.url,
-        jumlah_clip=args.clips,
-        pilihan_rasio=args.ratio,
+        video_url=args.url,
+        num_clips=args.clips,
+        selected_ratio=args.ratio,
         download_source_height=args.source_height,
         render_output_height=args.render_height,
         # Konten & Hook
-        max_kata_per_subtitle=args.words_per_sub,
-        durasi_hook=args.hook_duration,
+        max_words_per_subtitle=args.words_per_sub,
+        hook_duration=args.hook_duration,
         hook_source=args.hook_source,
         hook_source_start=args.hook_source_start,
         # Hook V2 & Segment Trimming
@@ -740,24 +740,24 @@ def build_config(argv: list[str] | None = None) -> SimpleNamespace:
         split_max_zoom=args.split_max_zoom,
         # Subtitle & Tipografi
         no_subs=args.no_subs,
-        gaya_font_aktif=args.font_style,
-        daftar_font=DAFTAR_FONT,
+        active_font_style=args.font_style,
+        font_list=FONT_LIST,
         use_advanced_text=args.advanced_text,
         use_advanced_text_on_hook=args.advanced_text_hook,
         # ASS position values
-        ass_align_916=ASS_ALIGN_916,
-        ass_margin_916=ASS_MARGIN_916,
-        ass_font_916=ASS_FONT_916,
-        scale_kata_khusus_916=SCALE_KATA_KHUSUS_916,
-        ass_align_169=ASS_ALIGN_169,
-        ass_margin_169=ASS_MARGIN_169,
-        ass_font_169=ASS_FONT_169,
-        scale_kata_khusus_169=SCALE_KATA_KHUSUS_169,
-        warna_kata_khusus=WARNA_KATA_KHUSUS,
+        ass_align_9_16=ASS_ALIGN_9_16,
+        ass_margin_9_16=ASS_MARGIN_9_16,
+        ass_font_9_16=ASS_FONT_9_16,
+        special_word_scale_9_16=SPECIAL_WORD_SCALE_9_16,
+        ass_align_16_9=ASS_ALIGN_16_9,
+        ass_margin_16_9=ASS_MARGIN_16_9,
+        ass_font_16_9=ASS_FONT_16_9,
+        special_word_scale_16_9=SPECIAL_WORD_SCALE_16_9,
+        special_word_color=SPECIAL_WORD_COLOR,
         # Asset URLs
-        url_font_thumbnail=URL_FONT_THUMBNAIL,
+        thumbnail_font_url=THUMBNAIL_FONT_URL,
         url_glitch_video=URL_GLITCH_VIDEO,
-        url_mediapipe_model=URL_MEDIAPIPE_MODEL,
+        mediapipe_model_url=MEDIAPIPE_MODEL_URL,
         # BGM
         bgm_base_volume=BGM_BASE_VOLUME,
         bgm_pool=BGM_POOL,

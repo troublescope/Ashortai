@@ -47,7 +47,7 @@ _get_render_dims = utils._get_render_dims
 _is_vertical_ratio = utils._is_vertical_ratio
 RATIO_MAP = utils.RATIO_MAP
 
-def siapkan_glitch_video(rasio, cfg, video_encoder, source_h=1080, custom_dims=None):
+def prepare_glitch_video(rasio, cfg, video_encoder, source_h=1080, custom_dims=None):
     """
     Generate a 1-second VHS glitch transition video from the source video frame.
 

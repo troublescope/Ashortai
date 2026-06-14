@@ -66,12 +66,12 @@ def get_face_detector(cfg):
     global _FACE_DETECTOR
 
     if _FACE_DETECTOR is None:
-        if not os.path.exists(cfg.file_mediapipe_model):
+        if not os.path.exists(cfg.mediapipe_model_path):
             urllib.request.urlretrieve(
-                cfg.url_mediapipe_model, cfg.file_mediapipe_model
+                cfg.mediapipe_model_url, cfg.mediapipe_model_path
             )
 
-        base_options = mp_python.BaseOptions(model_asset_path=cfg.file_mediapipe_model)
+        base_options = mp_python.BaseOptions(model_asset_path=cfg.mediapipe_model_path)
         _FACE_DETECTOR = mp_vision.FaceDetector.create_from_options(
             mp_vision.FaceDetectorOptions(
                 base_options=base_options,

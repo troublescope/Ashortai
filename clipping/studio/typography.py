@@ -109,8 +109,8 @@ def download_google_font(
                             f.write(chunk)
 
             if not is_valid(temp_path):
-                ukuran = os.path.getsize(temp_path) if os.path.exists(temp_path) else 0
-                raise ValueError(f"file hasil download tidak valid ({ukuran} byte)")
+                size = os.path.getsize(temp_path) if os.path.exists(temp_path) else 0
+                raise ValueError(f"file hasil download tidak valid ({size} byte)")
 
             os.replace(temp_path, file_path)
 
@@ -187,7 +187,7 @@ def register_fonts_for_libass(font_dir):
         )
 
 
-def siapkan_font_tipografi(cfg):
+def prepare_typography_font(cfg):
     """
     Ensure all required typography fonts for the selected style are downloaded and registered.
 
@@ -206,30 +206,30 @@ def siapkan_font_tipografi(cfg):
     Raises:
         RuntimeError: If either the primary or secondary required fonts fail to download or validate.
     """
-    daftar_font = cfg.daftar_font
-    gaya = cfg.gaya_font_aktif
+    font_list = cfg.font_list
+    style = cfg.active_font_style
     font_dir = cfg.font_dir
 
-    f_utama = daftar_font[gaya]["utama"]
-    f_khusus = daftar_font[gaya]["khusus"]
+    f_main = font_list[style]["utama"]
+    f_special = font_list[style]["khusus"]
 
-    ok_utama = download_google_font(f_utama["url"], f_utama["file"], font_dir)
-    ok_khusus = download_google_font(f_khusus["url"], f_khusus["file"], font_dir)
+    main_ok = download_google_font(f_main["url"], f_main["file"], font_dir)
+    special_ok = download_google_font(f_special["url"], f_special["file"], font_dir)
 
-    path_utama = os.path.join(font_dir, f_utama["file"])
-    path_khusus = os.path.join(font_dir, f_khusus["file"])
-
-    if not (
-        ok_utama and os.path.exists(path_utama) and os.path.getsize(path_utama) > 1000
-    ):
-        raise RuntimeError(f"Font utama gagal disiapkan: {path_utama}")
+    main_path = os.path.join(font_dir, f_main["file"])
+    special_path = os.path.join(font_dir, f_special["file"])
 
     if not (
-        ok_khusus
-        and os.path.exists(path_khusus)
-        and os.path.getsize(path_khusus) > 1000
+        main_ok and os.path.exists(main_path) and os.path.getsize(main_path) > 1000
     ):
-        raise RuntimeError(f"Font khusus gagal disiapkan: {path_khusus}")
+        raise RuntimeError(f"Font utama gagal disiapkan: {main_path}")
+
+    if not (
+        special_ok
+        and os.path.exists(special_path)
+        and os.path.getsize(special_path) > 1000
+    ):
+        raise RuntimeError(f"Font khusus gagal disiapkan: {special_path}")
 
     register_fonts_for_libass(font_dir)
     print(f"✅ Semua font berhasil disiapkan di: {font_dir}")

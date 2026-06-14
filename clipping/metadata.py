@@ -95,7 +95,7 @@ def _looks_indonesian(text):
 # MAIN API
 # ==============================================================================
 
-def normalize_and_validate(hasil_json: list[dict]) -> list[dict]:
+def normalize_and_validate(analysis_result: list[dict]) -> list[dict]:
     """
     Normalize and enrich metadata fields, add *_final fields.
 
@@ -104,7 +104,7 @@ def normalize_and_validate(hasil_json: list[dict]) -> list[dict]:
     valid_items = []
     laporan = []
     semua_warning = []
-    for item in hasil_json:
+    for item in analysis_result:
         if not isinstance(item, dict):
             print(f"⚠️ Melewati item metadata yang tidak valid (bukan dict): {type(item)}")
             continue
@@ -228,13 +228,13 @@ def normalize_and_validate(hasil_json: list[dict]) -> list[dict]:
     # Re-assign rank to be purely sequential and build laporan
     for idx, item in enumerate(valid_items):
         item["rank"] = idx + 1
-        klasifikasi = item.get("klasifikasi_akun", {})
+        classification = item.get("klasifikasi_akun", {})
         
         laporan.append({
             "rank": item["rank"],
             "viral_score": item.get("viral_score", 0),
             "durasi": round(float(item.get("end_time", 0)) - float(item.get("start_time", 0)), 2),
-            "akun_tujuan": klasifikasi.get("akun_tujuan", ""),
+            "akun_tujuan": classification.get("akun_tujuan", ""),
             "title_indonesia": item["title_indonesia"],
             "title_inggris": item["title_inggris"],
             "tiktok_title_id": item["tiktok_title_id"],
@@ -245,7 +245,7 @@ def normalize_and_validate(hasil_json: list[dict]) -> list[dict]:
     return valid_items
 
 
-def print_preview(hasil_json: list[dict]) -> None:
+def print_preview(analysis_result: list[dict]) -> None:
     """Print a human-readable metadata preview to stdout."""
     print("✅ Preview metadata siap.")
     print("Field tambahan yang dibuat:")
@@ -258,11 +258,11 @@ def print_preview(hasil_json: list[dict]) -> None:
     print()
 
     print("===== PREVIEW DETAIL PER KLIP =====")
-    for item in hasil_json:
-        klasifikasi = item.get("klasifikasi_akun", {})
+    for item in analysis_result:
+        classification = item.get("klasifikasi_akun", {})
         print(f"\n--- Rank {item['rank']} (Viral Score: {item.get('viral_score', '?')}) ---")
-        print(f"Akun Tujuan       : {klasifikasi.get('akun_tujuan', '')} ({klasifikasi.get('tipe_akun', '')})")
-        print(f"Alasan Akun       : {klasifikasi.get('alasan', '')}")
+        print(f"Akun Tujuan       : {classification.get('akun_tujuan', '')} ({classification.get('tipe_akun', '')})")
+        print(f"Alasan Akun       : {classification.get('alasan', '')}")
         print(f"Title ID          : {item['title_indonesia']}")
         print(f"Title EN          : {item['title_inggris']}")
         print(f"TikTok Title ID   : {item.get('tiktok_title_id_final', '')}")
@@ -275,8 +275,8 @@ def print_preview(hasil_json: list[dict]) -> None:
         print(f"TikTok Caption ID : {item.get('tiktok_caption_id_final', '')}")
 
 
-def save_metadata_preview(hasil_json: list[dict], path: str = "metadata_preview.json") -> None:
+def save_metadata_preview(analysis_result: list[dict], path: str = "metadata_preview.json") -> None:
     """Save normalized metadata to a JSON file."""
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(hasil_json, f, ensure_ascii=False, indent=2)
+        json.dump(analysis_result, f, ensure_ascii=False, indent=2)
     print(f"\n💾 Disimpan ke {path}")

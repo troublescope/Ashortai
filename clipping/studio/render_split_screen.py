@@ -48,7 +48,7 @@ _get_render_dims = utils._get_render_dims
 face_detection = _load_studio_internal_module("face_detection.py", "clipping_studio_face_detection")
 get_face_detector = face_detection.get_face_detector
 
-def buat_video_split_screen(
+def create_split_screen_video(
     input_video,
     output_video,
     start_clip,
@@ -98,14 +98,14 @@ def buat_video_split_screen(
     yolo_model = None
     detector = None
     if cfg.face_detector == "yolo":
-        if not os.path.exists(cfg.file_yolo_model):
+        if not os.path.exists(cfg.yolo_model_path):
             print(f"   📥 Mendownload YOLOv8 Face Model ({cfg.yolo_size})...")
             import urllib.request
 
-            urllib.request.urlretrieve(cfg.url_yolo_model, cfg.file_yolo_model)
+            urllib.request.urlretrieve(cfg.yolo_model_url, cfg.yolo_model_path)
         from ultralytics import YOLO
 
-        yolo_model = YOLO(cfg.file_yolo_model)
+        yolo_model = YOLO(cfg.yolo_model_path)
     else:
         detector = get_face_detector(cfg)
 

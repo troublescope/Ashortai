@@ -13,28 +13,28 @@ from types import SimpleNamespace
 
 # Import defaults from existing config module
 from clipping.config import (
-    ASS_ALIGN_169,
-    ASS_ALIGN_916,
-    ASS_FONT_169,
-    ASS_FONT_916,
-    ASS_MARGIN_169,
-    ASS_MARGIN_916,
+    ASS_ALIGN_16_9,
+    ASS_ALIGN_9_16,
+    ASS_FONT_16_9,
+    ASS_FONT_9_16,
+    ASS_MARGIN_16_9,
+    ASS_MARGIN_9_16,
     BGM_BASE_VOLUME,
     BGM_POOL,
-    DAFTAR_FONT,
+    FONT_LIST,
     GEMINI_FALLBACK_MODEL,
-    NAMA_FONT_THUMBNAIL,
+    THUMBNAIL_FONT_NAME,
     RENDER_OUTPUT_HEIGHT,
-    SCALE_KATA_KHUSUS_169,
-    SCALE_KATA_KHUSUS_916,
-    URL_FONT_THUMBNAIL,
+    SPECIAL_WORD_SCALE_16_9,
+    SPECIAL_WORD_SCALE_9_16,
+    THUMBNAIL_FONT_URL,
     URL_GLITCH_VIDEO,
-    URL_MEDIAPIPE_MODEL,
+    MEDIAPIPE_MODEL_URL,
     VIDEO_PRESET,
     VIDEO_QUALITY_CQ,
     VIDEO_QUALITY_CRF,
     VIDEO_SCALE_ALGO,
-    WARNA_KATA_KHUSUS,
+    SPECIAL_WORD_COLOR,
 )
 
 
@@ -94,11 +94,11 @@ def build_config_from_payload(
     # Determine video input path
     upload_filename = payload.get("upload_filename")
     if upload_filename:
-        file_video_asli = os.path.abspath(
+        original_video_path = os.path.abspath(
             os.path.join(base_dir, "uploads", upload_filename)
         )
     else:
-        file_video_asli = os.path.abspath(
+        original_video_path = os.path.abspath(
             os.path.join(outputs_dir, "video_asli.mp4")
         )
 
@@ -107,18 +107,18 @@ def build_config_from_payload(
         base_dir=base_dir,
         outputs_dir=outputs_dir,
         font_dir=font_dir,
-        file_video_asli=file_video_asli,
-        file_font_thumbnail=os.path.abspath(
-            os.path.join(base_dir, NAMA_FONT_THUMBNAIL)
+        original_video_path=original_video_path,
+        thumbnail_font_path=os.path.abspath(
+            os.path.join(base_dir, THUMBNAIL_FONT_NAME)
         ),
-        file_mediapipe_model=os.path.abspath(
+        mediapipe_model_path=os.path.abspath(
             os.path.join(base_dir, "blaze_face_full_range.tflite")
         ),
         # YOLO configs
         face_detector=face_detector,
         yolo_size=yolo_size,
-        url_yolo_model=f"https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov{yolo_size}.pt",
-        file_yolo_model=os.path.abspath(
+        yolo_model_url=f"https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov{yolo_size}.pt",
+        yolo_model_path=os.path.abspath(
             os.path.join(base_dir, f"face_yolov{yolo_size}.pt")
         ),
         # API keys — prefer env_overrides, then os.environ
@@ -127,14 +127,14 @@ def build_config_from_payload(
         pexels_api_key=env.get("PEXELS_API_KEY", os.environ.get("PEXELS_API_KEY", "")),
         # Pengaturan utama
         source_platform=source_platform,
-        url_youtube=payload.get("url"),
-        jumlah_clip=payload.get("clips", 7),
-        pilihan_rasio=payload.get("ratio", "9:16"),
+        video_url=payload.get("url"),
+        num_clips=payload.get("clips", 7),
+        selected_ratio=payload.get("ratio", "9:16"),
         download_source_height=source_height,
         render_output_height=render_height,
         # Konten & Hook
-        max_kata_per_subtitle=payload.get("words_per_sub", 5),
-        durasi_hook=payload.get("hook_duration", 3),
+        max_words_per_subtitle=payload.get("words_per_sub", 5),
+        hook_duration=payload.get("hook_duration", 3),
         hook_source=None,
         hook_source_start=0.0,
         # Hook V2 & Segment Trimming
@@ -160,24 +160,24 @@ def build_config_from_payload(
         split_max_zoom=payload.get("split_max_zoom", 2.5),
         # Subtitle & Tipografi
         no_subs=payload.get("no_subs", False),
-        gaya_font_aktif=payload.get("font_style", "HORMOZI"),
-        daftar_font=DAFTAR_FONT,
+        active_font_style=payload.get("font_style", "HORMOZI"),
+        font_list=FONT_LIST,
         use_advanced_text=payload.get("advanced_text", False),
         use_advanced_text_on_hook=payload.get("advanced_text_hook", False),
         # ASS position values
-        ass_align_916=ASS_ALIGN_916,
-        ass_margin_916=ASS_MARGIN_916,
-        ass_font_916=ASS_FONT_916,
-        scale_kata_khusus_916=SCALE_KATA_KHUSUS_916,
-        ass_align_169=ASS_ALIGN_169,
-        ass_margin_169=ASS_MARGIN_169,
-        ass_font_169=ASS_FONT_169,
-        scale_kata_khusus_169=SCALE_KATA_KHUSUS_169,
-        warna_kata_khusus=WARNA_KATA_KHUSUS,
+        ass_align_9_16=ASS_ALIGN_9_16,
+        ass_margin_9_16=ASS_MARGIN_9_16,
+        ass_font_9_16=ASS_FONT_9_16,
+        special_word_scale_9_16=SPECIAL_WORD_SCALE_9_16,
+        ass_align_16_9=ASS_ALIGN_16_9,
+        ass_margin_16_9=ASS_MARGIN_16_9,
+        ass_font_16_9=ASS_FONT_16_9,
+        special_word_scale_16_9=SPECIAL_WORD_SCALE_16_9,
+        special_word_color=SPECIAL_WORD_COLOR,
         # Asset URLs
-        url_font_thumbnail=URL_FONT_THUMBNAIL,
+        thumbnail_font_url=THUMBNAIL_FONT_URL,
         url_glitch_video=URL_GLITCH_VIDEO,
-        url_mediapipe_model=URL_MEDIAPIPE_MODEL,
+        mediapipe_model_url=MEDIAPIPE_MODEL_URL,
         # BGM
         bgm_base_volume=BGM_BASE_VOLUME,
         bgm_pool=BGM_POOL,

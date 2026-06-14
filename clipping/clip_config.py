@@ -41,11 +41,11 @@ _CLIP_OVERRIDES = {
     "split_max_zoom":   ("split_max_zoom",   lambda c: c.split_max_zoom,   float),
     "static_crop":      ("static_crop",      lambda c: c.static_crop,      bool),
     # ── Geometry ──
-    "ratio":            ("pilihan_rasio",    lambda c: c.pilihan_rasio,    str),
-    "hook_duration":    ("durasi_hook",      lambda c: c.durasi_hook,      int),
-    "words_per_sub":    ("max_kata_per_subtitle", lambda c: c.max_kata_per_subtitle, int),
+    "ratio":            ("selected_ratio",    lambda c: c.selected_ratio,    str),
+    "hook_duration":    ("hook_duration",      lambda c: c.hook_duration,      int),
+    "words_per_sub":    ("max_words_per_subtitle", lambda c: c.max_words_per_subtitle, int),
     # ── Typography ──
-    "font_style":       ("gaya_font_aktif",  lambda c: c.gaya_font_aktif,  str),
+    "font_style":       ("active_font_style",  lambda c: c.active_font_style,  str),
     # ── Face Detection ──
     "face_detector":    ("face_detector",    lambda c: c.face_detector,    str),
     "yolo_size":        ("yolo_size",        lambda c: c.yolo_size,        str),
@@ -151,7 +151,7 @@ def resolve_clip_cfg(clip: dict, cfg: SimpleNamespace, external: dict | None = N
             setattr(clip_cfg, target_attr, coerced)
 
     # ── Special convenience aliases ──
-    # If user passes "ratio" in JSON it maps to pilihan_rasio (already handled above)
+    # If user passes "ratio" in JSON it maps to selected_ratio (already handled above)
     # If user passes "render_height" it maps to render_output_height
     if ext.get("render_height") is not None or clip.get("render_height") is not None:
         rh = ext.get("render_height") if ext.get("render_height") is not None else clip.get("render_height")

@@ -49,7 +49,7 @@ estimate_speaker_count_from_video = face_detection.estimate_speaker_count_from_v
 typography = _load_studio_internal_module("typography.py", "clipping_studio_typography")
 download_google_font = typography.download_google_font
 register_fonts_for_libass = typography.register_fonts_for_libass
-siapkan_font_tipografi = typography.siapkan_font_tipografi
+prepare_typography_font = typography.prepare_typography_font
 audio_bgm = _load_studio_internal_module("audio_bgm.py", "clipping_studio_audio_bgm")
 resolve_pixabay_audio_url = audio_bgm.resolve_pixabay_audio_url
 download_bgm_from_pixabay_page = audio_bgm.download_bgm_from_pixabay_page
@@ -57,9 +57,9 @@ broll = _load_studio_internal_module("broll.py", "clipping_studio_broll")
 download_pexels_broll = broll.download_pexels_broll
 crop_center_broll = broll.crop_center_broll
 subtitles = _load_studio_internal_module("subtitles.py", "clipping_studio_subtitles")
-buat_file_ass = subtitles.buat_file_ass
+create_ass_file = subtitles.create_ass_file
 effects = _load_studio_internal_module("effects.py", "clipping_studio_effects")
-siapkan_glitch_video = effects.siapkan_glitch_video
+prepare_glitch_video = effects.prepare_glitch_video
 transitions = _load_studio_internal_module("transitions.py", "clipping_studio_transitions")
 download_transition_raw = transitions.download_transition_raw
 download_all_transitions = transitions.download_all_transitions
@@ -67,13 +67,13 @@ get_random_transition = transitions.get_random_transition
 prepare_transition_clip = transitions.prepare_transition_clip
 TMP_TRANSITION_POOL = transitions.TMP_TRANSITION_POOL
 thumbnail = _load_studio_internal_module("thumbnail.py", "clipping_studio_thumbnail")
-buat_thumbnail = thumbnail.buat_thumbnail
+create_thumbnail = thumbnail.create_thumbnail
 render_hybrid = _load_studio_internal_module("render_hybrid.py", "clipping_studio_render_hybrid")
-buat_video_hybrid = render_hybrid.buat_video_hybrid
+create_hybrid_video = render_hybrid.create_hybrid_video
 render_split_screen = _load_studio_internal_module("render_split_screen.py", "clipping_studio_render_split_screen")
-buat_video_split_screen = render_split_screen.buat_video_split_screen
+create_split_screen_video = render_split_screen.create_split_screen_video
 render_camera_switch = _load_studio_internal_module("render_camera_switch.py", "clipping_studio_render_camera_switch")
-buat_video_camera_switch = render_camera_switch.buat_video_camera_switch
+create_camera_switch_video = render_camera_switch.create_camera_switch_video
 
 # Helpers and ffmpeg_utils
 _helpers = _load_studio_internal_module("helpers.py", "clipping_studio_helpers")
@@ -89,8 +89,8 @@ build_ffmpeg_progress_cmd = _ffmpeg_utils.build_ffmpeg_progress_cmd
 run_ffmpeg_with_progress = _ffmpeg_utils.run_ffmpeg_with_progress
 v2_helpers = _load_studio_internal_module("v2_helpers.py", "clipping_studio_v2_helpers")
 
-def proses_klip(
-    rank, clip, rasio, glitch_ts, data_segmen, cfg, video_encoder, diarization_data=None
+def process_clip(
+    rank, clip, rasio, glitch_ts, segment_data, cfg, video_encoder, diarization_data=None
 ):
     """
     Run full clip processing pipeline from render to final output files.
@@ -114,12 +114,12 @@ def proses_klip(
     h_end = float(
         clip.get(
             "hook_end_time",
-            clip.get("hook_start_time", clip["start_time"]) + cfg.durasi_hook,
+            clip.get("hook_start_time", clip["start_time"]) + cfg.hook_duration,
         )
     )
     
     # Custom Hook Override
-    file_hook_src = cfg.file_video_asli
+    file_hook_src = cfg.original_video_path
     custom_hook = clip.get("custom_hook_info")
     if custom_hook:
         file_hook_src = custom_hook["file_path"]
@@ -137,13 +137,13 @@ def proses_klip(
         except:
             vid_duration = float('inf')
 
-        h_end = h_start + cfg.durasi_hook
+        h_end = h_start + cfg.hook_duration
         if h_end > vid_duration:
             h_end = vid_duration
     m_start = float(clip["start_time"])
     m_end = float(clip["end_time"])
-    judul = clip.get("title_indonesia")
-    judul_en = clip.get("title_inggris")
+    title = clip.get("title_indonesia")
+    english_title = clip.get("title_inggris")
     
     out_vid = os.path.join(cfg.outputs_dir, f"highlight_rank_{rank}_ready.mp4")
     if getattr(cfg, "dev_mode_with_output_merge", False):
@@ -152,10 +152,10 @@ def proses_klip(
     out_thm = os.path.join(cfg.outputs_dir, f"thumbnail_rank_{rank}.jpg")
 
     # Ambil resolusi video asli untuk perhitungan posisi subtitle di dev-mode
-    cap_asli = cv2.VideoCapture(cfg.file_video_asli)
-    sw = int(cap_asli.get(cv2.CAP_PROP_FRAME_WIDTH))
-    sh = int(cap_asli.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    cap_asli.release()
+    source_cap = cv2.VideoCapture(cfg.original_video_path)
+    sw = int(source_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    sh = int(source_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    source_cap.release()
     source_dim = (sw, sh)
 
     manifest_item = {
@@ -164,7 +164,7 @@ def proses_klip(
         "ratio": rasio,
         "video_path": out_vid,
         "thumbnail_path": out_thm,
-        "thumbnail_text": judul_en or judul or f"Highlight {rank}",
+        "thumbnail_text": english_title or title or f"Highlight {rank}",
         "youtube_title_final": clip.get(
             "youtube_title_final", clip.get("title_inggris", "")
         ),
@@ -195,7 +195,7 @@ def proses_klip(
     print(f"{'=' * 70}")
 
     typography_plan = clip.get("typography_plan", [])
-    siapkan_font_tipografi(cfg)
+    prepare_typography_font(cfg)
 
     h_ts, m_ts, a_hook, a_main = (
         f"h_{rank}.ts",
@@ -282,7 +282,7 @@ def proses_klip(
                 item_ts = f"h_v2_ts_{rank}_{i}.ts"
 
                 # Render visual (face-tracked crop)
-                buat_video_hybrid(
+                create_hybrid_video(
                     file_hook_src, item_silent,
                     item_start, item_end, rasio, cfg,
                     label=f"Rank {rank} HookV2 Item {i}",
@@ -359,7 +359,7 @@ def proses_klip(
             get_x_h = None
             if use_split:
                 print("   📸 [Hook] Split-screen render (Custom Hook diabaikan untuk format ini saat ini atau digabung)...")
-                get_x_h = buat_video_split_screen(
+                get_x_h = create_split_screen_video(
                     file_hook_src,
                     h_silent,
                     h_start,
@@ -371,7 +371,7 @@ def proses_klip(
                 )
             elif use_camera_switch:
                 print("   📸 [Hook] Camera switch render...")
-                get_x_h = buat_video_camera_switch(
+                get_x_h = create_camera_switch_video(
                     file_hook_src,
                     h_silent,
                     h_start,
@@ -383,7 +383,7 @@ def proses_klip(
                 )
             else:
                 print("   📸 [Hook] Hybrid render...")
-                get_x_h = buat_video_hybrid(
+                get_x_h = create_hybrid_video(
                     file_hook_src,
                     h_silent,
                     h_start,
@@ -395,8 +395,8 @@ def proses_klip(
             
             aktif_advanced_hook = cfg.use_advanced_text_on_hook
             if not cfg.no_subs and not custom_hook:
-                buat_file_ass(
-                    data_segmen,
+                create_ass_file(
+                    segment_data,
                     h_start,
                     h_end,
                     a_hook,
@@ -472,28 +472,28 @@ def proses_klip(
 
                 # Render visual per segment
                 if use_split:
-                    get_x_main = buat_video_split_screen(
-                        cfg.file_video_asli, s_silent, s_start, s_end,
+                    get_x_main = create_split_screen_video(
+                        cfg.original_video_path, s_silent, s_start, s_end,
                         rasio, diarization_data, cfg,
                         label=f"Rank {rank} Seg {idx} SplitScreen",
                     )
                 elif use_camera_switch:
-                    get_x_main = buat_video_camera_switch(
-                        cfg.file_video_asli, s_silent, s_start, s_end,
+                    get_x_main = create_camera_switch_video(
+                        cfg.original_video_path, s_silent, s_start, s_end,
                         rasio, diarization_data, cfg,
                         label=f"Rank {rank} Seg {idx} CameraSwitch",
                     )
                 else:
-                    get_x_main = buat_video_hybrid(
-                        cfg.file_video_asli, s_silent, s_start, s_end,
+                    get_x_main = create_hybrid_video(
+                        cfg.original_video_path, s_silent, s_start, s_end,
                         rasio, cfg, broll_aktif,
                         label=f"Rank {rank} Seg {idx} Hybrid",
                     )
 
                 # Subtitle for this segment
                 if not cfg.no_subs:
-                    buat_file_ass(
-                        data_segmen, s_start, s_end, s_ass, rasio, cfg,
+                    create_ass_file(
+                        segment_data, s_start, s_end, s_ass, rasio, cfg,
                         typography_plan=typography_plan, gunakan_advanced=True,
                         get_x_func=get_x_main, source_dim=source_dim,
                     )
@@ -509,7 +509,7 @@ def proses_klip(
                     "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
                     "-i", s_silent,
                     "-ss", str(s_start), "-to", str(s_end),
-                    "-i", cfg.file_video_asli,
+                    "-i", cfg.original_video_path,
                     "-map", "0:v:0", "-map", "1:a:0",
                 ]
                 if vf_seg_parts:
@@ -585,8 +585,8 @@ def proses_klip(
             # Standard MAIN render (full start_time → end_time)
             if use_split:
                 print("   📸 [Main] Split-screen render (Visual)...")
-                get_x_main = buat_video_split_screen(
-                    cfg.file_video_asli,
+                get_x_main = create_split_screen_video(
+                    cfg.original_video_path,
                     m_silent,
                     m_start,
                     m_end,
@@ -598,8 +598,8 @@ def proses_klip(
             elif use_camera_switch:
                 # Note: Camera Switch doesn't currently support dev_mode frames but we pass it anyway
                 print("   📸 [Main] Camera switch render (Visual)...")
-                get_x_main = buat_video_camera_switch(
-                    cfg.file_video_asli,
+                get_x_main = create_camera_switch_video(
+                    cfg.original_video_path,
                     m_silent,
                     m_start,
                     m_end,
@@ -610,8 +610,8 @@ def proses_klip(
                 )
             else:
                 print("   📸 [Main] Hybrid render (Visual)...")
-                get_x_main = buat_video_hybrid(
-                    cfg.file_video_asli,
+                get_x_main = create_hybrid_video(
+                    cfg.original_video_path,
                     m_silent,
                     m_start,
                     m_end,
@@ -622,8 +622,8 @@ def proses_klip(
                 )
 
             if not cfg.no_subs:
-                buat_file_ass(
-                    data_segmen,
+                create_ass_file(
+                    segment_data,
                     m_start,
                     m_end,
                     a_main,
@@ -695,7 +695,7 @@ def proses_klip(
                         "-to",
                         str(m_end),
                         "-i",
-                        cfg.file_video_asli,
+                        cfg.original_video_path,
                         "-stream_loop",
                         "-1",
                         "-i",
@@ -722,7 +722,7 @@ def proses_klip(
                         "-to",
                         str(m_end),
                         "-i",
-                        cfg.file_video_asli,
+                        cfg.original_video_path,
                         "-map",
                         "0:v:0",
                         "-map",
@@ -772,7 +772,7 @@ def proses_klip(
                 concat_str = f"concat:{hook_vid_ts}|{main_vid_ts}"
             elif aktif_hook:
                 # Hook V1: need glitch transition between hook and main
-                cur_glitch = siapkan_glitch_video(rasio, cfg, video_encoder, source_h=sh, custom_dims=dims)
+                cur_glitch = prepare_glitch_video(rasio, cfg, video_encoder, source_h=sh, custom_dims=dims)
                 if cur_glitch and os.path.exists(cur_glitch) and os.path.exists(hook_vid_ts):
                     concat_str = f"concat:{hook_vid_ts}|{cur_glitch}|{main_vid_ts}"
                 else:
@@ -798,8 +798,8 @@ def proses_klip(
                 stderr=subprocess.DEVNULL,
             )
 
-        judul_thumbnail = judul_en or judul or f"Highlight {rank}"
-        buat_thumbnail(out_vid, out_thm, judul_thumbnail, cfg)
+        thumbnail_title = english_title or title or f"Highlight {rank}"
+        create_thumbnail(out_vid, out_thm, thumbnail_title, cfg)
 
         manifest_item["status"] = "success"
         manifest_item["video_exists"] = os.path.exists(out_vid)

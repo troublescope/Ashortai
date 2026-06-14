@@ -55,7 +55,7 @@ crop_center_broll = broll.crop_center_broll
 face_detection = _load_studio_internal_module("face_detection.py", "clipping_studio_face_detection")
 get_face_detector = face_detection.get_face_detector
 
-def buat_video_hybrid(
+def create_hybrid_video(
     input_video,
     output_video,
     start_clip,
@@ -118,14 +118,14 @@ def buat_video_hybrid(
     yolo_model = None
     detector = None
     if cfg.face_detector == "yolo":
-        if not os.path.exists(cfg.file_yolo_model):
+        if not os.path.exists(cfg.yolo_model_path):
             print(f"   📥 Mendownload YOLOv8 Face Model ({cfg.yolo_size})...")
             import urllib.request
 
-            urllib.request.urlretrieve(cfg.url_yolo_model, cfg.file_yolo_model)
+            urllib.request.urlretrieve(cfg.yolo_model_url, cfg.yolo_model_path)
         from ultralytics import YOLO
 
-        yolo_model = YOLO(cfg.file_yolo_model)
+        yolo_model = YOLO(cfg.yolo_model_path)
     else:
         detector = get_face_detector(cfg)
 
@@ -356,7 +356,7 @@ def buat_video_hybrid(
         print(f"🎬 {label} - Render frame dimulai...", flush=True)
 
         while True:
-            ret, frame_utama = cap.read()
+            ret, main_frame = cap.read()
             if not ret:
                 break
 
@@ -372,18 +372,18 @@ def buat_video_hybrid(
                 cx_base, cy_base = _get_pos(t)
                 x1_crop = int(max(0, min(cx_base - crop_w // 2, width - crop_w)))
                 y1_crop = int(max(0, min(cy_base - crop_h // 2, height - crop_h)))
-                cropped = frame_utama[y1_crop : y1_crop + crop_h, x1_crop : x1_crop + crop_w]
+                cropped = main_frame[y1_crop : y1_crop + crop_h, x1_crop : x1_crop + crop_w]
                 frame_normal = _resize_frame(cropped, (base_out_w, base_out_h))
             else:
                 # 16:9 landscape: fit-to-height with letterbox (no stretch)
                 cx_base, cy_base = default_cx, default_cy
-                src_h, src_w = frame_utama.shape[:2]
+                src_h, src_w = main_frame.shape[:2]
                 src_ratio = src_w / src_h
                 out_ratio = base_out_w / base_out_h
 
                 if abs(src_ratio - out_ratio) < 0.01:
                     # Source already matches target ratio — direct resize
-                    frame_normal = _resize_frame(frame_utama, (base_out_w, base_out_h))
+                    frame_normal = _resize_frame(main_frame, (base_out_w, base_out_h))
                 else:
                     # Fit source into target canvas, maintaining aspect ratio
                     frame_normal = np.zeros((base_out_h, base_out_w, 3), dtype=np.uint8)
@@ -393,7 +393,7 @@ def buat_video_hybrid(
                         fit_h = int(base_out_w / src_ratio)
                         if fit_h % 2 != 0:
                             fit_h += 1
-                        resized = _resize_frame(frame_utama, (fit_w, fit_h))
+                        resized = _resize_frame(main_frame, (fit_w, fit_h))
                         y_off = (base_out_h - fit_h) // 2
                         frame_normal[y_off : y_off + fit_h, :] = resized
                     else:
@@ -402,7 +402,7 @@ def buat_video_hybrid(
                         fit_w = int(base_out_h * src_ratio)
                         if fit_w % 2 != 0:
                             fit_w += 1
-                        resized = _resize_frame(frame_utama, (fit_w, fit_h))
+                        resized = _resize_frame(main_frame, (fit_w, fit_h))
                         x_off = (base_out_w - fit_w) // 2
                         frame_normal[:, x_off : x_off + fit_w] = resized
 
@@ -412,7 +412,7 @@ def buat_video_hybrid(
             # --- 2. CREATE DEV CONTEXT FRAME IF ACTIVE ---
             frame_dev = None
             if dev_visualize and _is_vertical_ratio(rasio):
-                frame_base = _resize_frame(frame_utama, (1920, 1080))
+                frame_base = _resize_frame(main_frame, (1920, 1080))
                 frame_dev = (frame_base * 0.35).astype(np.uint8)
                 
                 scale_x = 1920 / width
@@ -467,8 +467,8 @@ def buat_video_hybrid(
                     ret_b, frame_b = bc["cap"].read()
 
                     if ret_b:
-                        durasi_total_broll = bc["end"] - bc["start"]
-                        progress_broll = elapsed_broll / durasi_total_broll if durasi_total_broll > 0 else 0
+                        total_broll_duration = bc["end"] - bc["start"]
+                        progress_broll = elapsed_broll / total_broll_duration if total_broll_duration > 0 else 0
                         zoom_factor = 1.0 + ((MAX_ZOOM - 1.0) * progress_broll)
 
                         frame_b_crop = crop_center_broll(frame_b, base_out_w, base_out_h)

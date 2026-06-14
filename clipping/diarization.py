@@ -3,7 +3,7 @@ clipping.diarization — Speaker Diarization with Pyannote
 
 Deteksi speaker berbeda dalam audio/video menggunakan model
 pyannote/speaker-diarization-3.1. Digunakan untuk fitur split-screen
-pada klip podcast.
+pada clip podcast.
 """
 
 import os
