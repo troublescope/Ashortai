@@ -137,6 +137,17 @@ def run_pipeline(cfg) -> list[dict]:
             print(f"   ⚠️ CPU runtime detected; switching compute type from {whisper_compute} to int8.")
             whisper_compute = "int8"
 
+        # Validate GPU float16 capability
+        if whisper_device in ("cuda", "auto") and whisper_compute == "float16":
+            try:
+                import torch
+                if not torch.cuda.is_available():
+                    print(f"   ⚠️ float16 requested but CUDA unavailable; switching to int8.")
+                    whisper_compute = "int8"
+                    whisper_device = "cpu"
+            except Exception:
+                pass
+
         _vprint(
             cfg,
             f"   🔄 Falling back to Whisper: model={whisper_model}, device={whisper_device}, compute={whisper_compute}",
